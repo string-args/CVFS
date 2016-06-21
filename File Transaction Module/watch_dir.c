@@ -77,7 +77,7 @@ void* watch_temp()
                         long sz = ftell(fp);
                         rewind(fp);
                          //check if stripe file
-                        if (sz > 536870912){
+                        if (sz > STRIPE_SIZE){
                            //before striping, check cache 
                            printf("%s will be striped.\n", event->name);
 			   printf("Inserting into CacheContent...\n");
