@@ -99,10 +99,11 @@ void create_link_cache(String filename){
 void update_link_cache(String filename, String fileloc){
     String ln, rm;
 
-    sprintf(rm, "rm '/mnt/Share/%s'", filename);
-    printf("Rm = %s\n", rm);
-    system(rm);
-    sprintf(ln, "ln -s '%s/%s' '/mnt/Share/%s'", fileloc, filename, filename);
-    printf("LN = %s\n", ln);
+    //sprintf(rm, "rm '/mnt/Share/%s'", filename);
+    //printf("Rm = %s\n", rm);
+    //system(rm);
+    sprintf(ln, "ln -s '%s/%s' '%s/%s'", fileloc, filename, SHARE_LOC, filename);
+    //printf("LN = %s\n", ln);
     system(ln);
+    printf("Update Link for file: %s\n", filename);
 }

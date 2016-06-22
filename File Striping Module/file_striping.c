@@ -17,11 +17,11 @@ void stripe(String filename){
 
   FILE *file_to_open;
   
-  size_t threshold = 536870912; /*124MB*/
+  //size_t threshold = 536870912; /*124MB*/
   size_t bytes_read;
 
   int part_count = 1;
-  char *buffer = malloc(threshold); /*buffer to put data on*/
+  char *buffer = malloc(STRIPE_SIZE); /*buffer to put data on*/
 
   String part_name;
   String full;
@@ -37,7 +37,7 @@ void stripe(String filename){
     printf("fopen() unsuccessful!\n");
   }
 
-  while ((bytes_read = fread(buffer, sizeof(char), threshold, file_to_open)) > 0){
+  while ((bytes_read = fread(buffer, sizeof(char), STRIPE_SIZE, file_to_open)) > 0){
        sprintf(part_name, "/mnt/CVFSTemp/part%d.%s", part_count, filename);
        FILE *file_to_write = fopen(part_name, "wb");
        fwrite(buffer, 1, bytes_read, file_to_write);
