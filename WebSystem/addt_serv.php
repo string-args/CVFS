@@ -1,8 +1,6 @@
 <?php
 /*
     server side code of target add page
-    requires:
-        php5-sqlite
 */
 $PROGNAME = './add_target';
 $ok = 'SUCCESS';

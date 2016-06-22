@@ -1,13 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta charset="utf-8">
         <title>Add Target</title>
-        <style>
-            .details {
-                margin-left: 50px;
-            }
-        </style>
     </head>
     <body>
         <h1>Add an ISCSI Target</h1>
