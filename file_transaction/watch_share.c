@@ -8,9 +8,9 @@
 #include <sqlite3.h>
 
 #include "../Global/global_definitions.h"
-#include "../Volume Management Module/file_assembly.h"
-#include "../Volume Management Module/file_mapping.h"
-#include "../Cache Access Module/cache_operation.h"
+#include "../volume_management/file_assembly.h"
+#include "../volume_management/file_mapping.h"
+#include "../cache_access/cache_operation.h"
 #include "watch_share.h"
 
 #define MAX_EVENTS 1024 /*Max. number of events to process at one go*/
@@ -52,7 +52,7 @@ void delete_linear_file(String filename){
     update_target_size_delete(filename, fileloc);
     system(comm);
     printf("File %s successfully deleted.\n", filename);
-    
+
     sprintf(query, "DELETE from VolContent where filename = '%s';", filename);
     rc = sqlite3_exec(db, query, 0, 0, 0);
     if (rc != SQLITE_OK){
@@ -77,13 +77,13 @@ void delete_stripe_file(String filename)
        sqlite3_close(db);
        exit(1);
     }
-    
+
     //another code here: check file if in cache, if yes, remove file
     String comm, comm_out;
     int inCache = 0;
     sprintf(comm, "ls %s", CACHE_LOC);
     runCommand(comm, comm_out);
-    
+
     char *ptr = NULL;
     ptr = strtok(comm_out, "\n");
     while (ptr != NULL){
@@ -107,7 +107,7 @@ void delete_stripe_file(String filename)
 
     char percent = '%';
     String query, sql;
-    sprintf(query, "SELECT  filename, fileloc from VolContent where filename like '%c%s';", percent, filename, percent);
+    sprintf(query, "SELECT  filename, fileloc from VolContent where filename like '%c%s';", percent, filename); // note to aidz meron ako pinalitan dito!!!!
     strcpy(sql, query);
     rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
     if (rc != SQLITE_OK){
@@ -198,22 +198,22 @@ void *watch_share()
     sqlite3_stmt *res;
 
     const char *tail;
-   
-   
+
+
     rc = sqlite3_open(DBNAME, &db);
     if (rc != SQLITE_OK){
        fprintf(stderr, "Can't open database: %s.\n", sqlite3_errmsg(db));
        sqlite3_close(db);
        exit(1);
     }
-    
+
     strcpy(query, "SELECT mountpt FROM Target;");
     rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
     if (rc != SQLITE_OK){
        fprintf(stderr, "Failed to retrieved data.\n");
        exit(1);
     }
-   
+
     /*Initialize inotify*/
     fd = inotify_init();
     if ( fd < 0 ) {
@@ -230,7 +230,7 @@ void *watch_share()
     }
 
    wd = inotify_add_watch(fd, CACHE_LOC, IN_OPEN | IN_CLOSE_NOWRITE);
-      
+
    if (wd != -1){
     	printf("Watching:: %s\n", CACHE_LOC);
    }
@@ -245,7 +245,7 @@ void *watch_share()
     for(;;){
 	create_link();
        length = read(fd, buffer, BUF_LEN);
-      
+
        if (length < 0){
           perror("read");
        }
@@ -281,7 +281,7 @@ void *watch_share()
                       printf("%s was opened.\n", event->name);
                       //incrementFrequency(event->name);
                       if (strstr(event->name,"part1.") != NULL){
-                      
+
                         incrementFrequency(event->name);
                       /*  String comm, comm_out;
                         int inCache = 0;
@@ -296,8 +296,8 @@ void *watch_share()
                                  break;
                              }
 			     ptr = strtok(NULL, "\n");
-                        }                        
-     
+                        }
+
                         if (!inCache){
                             assemble(event->name);
                         }*/
@@ -315,7 +315,7 @@ void *watch_share()
                      	     } else {
                          	delete_linear_file(event->name);
                      	     }
-                  }	
+                  }
               }
 
               if (event->mask & IN_CLOSE_NOWRITE){
@@ -325,14 +325,14 @@ void *watch_share()
                       printf("The file %s was closed.\n", event->name);
                   if (strstr(event->name, "part1.") != NULL){
                            refreshCache();
-                      }             
+                      }
                   }
               }
-              
+
               p += EVENT_SIZE + event->len;
            //}
        }
-}    
+}
 
     /* Clean up */
     inotify_rm_watch(fd, wd);

@@ -10,13 +10,13 @@
 #include <stdlib.h>
 
 #include "../Global/global_definitions.h"
-#include "../Volume Management Module/file_mapping.h"
+#include "../volume_management/file_mapping.h"
 #include "file_striping.h"
 
 void stripe(String filename){
 
   FILE *file_to_open;
-  
+
   //size_t threshold = 536870912; /*124MB*/
   size_t bytes_read;
 

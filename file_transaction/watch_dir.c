@@ -7,11 +7,11 @@
 #include <limits.h>
 
 #include "../Global/global_definitions.h"
-#include "../Volume Management Module/file_mapping.h"
-#include "../Volume Management Module/file_assembly.h"
-#include "../Disk Pooling Module/file_presentation.h"
-#include "../Cache Access Module/cache_operation.h"
-#include "../File Striping Module/file_striping.h"
+#include "../volume_management/file_mapping.h"
+#include "../volume_management/file_assembly.h"
+#include "../disk_pooling/file_presentation.h"
+#include "../cache_access/cache_operation.h"
+#include "../file_striping/file_striping.h"
 
 #define MAX_EVENTS 1024 /*Max. number of events to process at one go*/
 #define LEN_NAME 32 /*Assuming that the length of filename won't exceed 16 bytes*/
@@ -34,7 +34,7 @@ void* watch_temp()
 
     /*add watch to directory*/
 //    wd = inotify_add_watch(fd, TEMP_LOC, IN_ALL_EVENTS);
-    wd = inotify_add_watch(fd, TEMP_LOC, IN_CLOSE | IN_MOVED_TO);        
+    wd = inotify_add_watch(fd, TEMP_LOC, IN_CLOSE | IN_MOVED_TO);
 
     if (wd == -1){
         printf("Couldn't add watch to %s\n", TEMP_LOC);
@@ -47,26 +47,26 @@ void* watch_temp()
 
        create_link();
  //      watch_share();
- 
+
        i = 0;
        length = read(fd, buffer, BUF_LEN);
-      
+
        if (length < 0){
           perror("read");
        }
 
        while( i < length ){
            struct inotify_event *event = (struct inotify_event *) &buffer[i];
-           
+
            if (event->len){
 
               if (event->mask & IN_CLOSE){
                   if (event->mask & IN_ISDIR)
                       printf("The directory %s open for writing was closed.\n", event->name);
                   else {
-                      
+
                       //printf("The file %s open for writing was closed.\n", event->name);
-                      
+
                       String filepath;
                       FILE *fp;
 
@@ -78,7 +78,7 @@ void* watch_temp()
                         rewind(fp);
                          //check if stripe file
                         if (sz > STRIPE_SIZE){
-                           //before striping, check cache 
+                           //before striping, check cache
                            printf("%s will be striped.\n", event->name);
 			   printf("Inserting into CacheContent...\n");
                            update_cache_list(event->name);
@@ -94,12 +94,12 @@ void* watch_temp()
                           // strcat(file, event->name);
                            //update_cache_file_mountpt(event->name);
                            refreshCache();
-                          
+
                         } else {
                            file_map(event->name);
                         }
                       }
-                  }   
+                  }
               }
 
               if (event->mask & IN_MOVED_TO){

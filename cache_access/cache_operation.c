@@ -5,14 +5,14 @@
 
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
-#include "../Disk Pooling Module/file_presentation.h"
-#include "../Volume Management Module/file_assembly.h"
+#include "../disk_pooling/file_presentation.h"
+#include "../volume_management/file_assembly.h"
 #include "cache_operation.h"
 
 //increment the frequency of the file
 void incrementFrequency(String filename){
    sqlite3 *db;
-  
+
    //const char *tail;
    //sqlite3_stmt *res;
 
@@ -147,11 +147,11 @@ int getCacheCount(){
         count++;
         pch = strtok(NULL, "\n");
     }
-   
+
     return count;
 }
 
-//refresh cache: follows least frequency 
+//refresh cache: follows least frequency
 void refreshCache(){
     sqlite3 *db;
     sqlite3_stmt *res;
@@ -159,7 +159,7 @@ void refreshCache(){
     const char *tail;
     int rc, i;
 
-    printf("Refreshing Cache...\n");   
+    printf("Refreshing Cache...\n");
     String comm = "", comm_out = "", file_list = "", query;
     String contents[MAX_CACHE_SIZE];
 
@@ -207,7 +207,7 @@ void refreshCache(){
        sqlite3_close(db);
        exit(1);
     }
-    
+
 
     while (sqlite3_step(res) == SQLITE_ROW){
        //for (i = 0; i < MAX_CACHE_SIZE; i++){
@@ -223,7 +223,7 @@ void refreshCache(){
 	      system(rm);
               create_link_cache(filename);
            }
-      // }         
+      // }
     }
     sqlite3_finalize(res);
     /* rc = sqlite3_exec(db, query, storeCont, contents, &errmsg);
@@ -260,7 +260,7 @@ void refreshCache(){
 		update_link_cache(contents[i], fileloc);
 	  }
 	  sqlite3_finalize(res);
-       }        
+       }
     }
     sqlite3_close(db);
 }

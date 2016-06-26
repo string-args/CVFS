@@ -4,8 +4,9 @@
 #include <sqlite3.h>
 
 #include "../Global/global_definitions.h"
-#include "../Disk Pooling Module/file_presentation.h"
-#include "../Cache Access Module/cache_operation.h"
+#include "../disk_pooling/file_presentation.h"
+#include "../cache_access/cache_operation.h"
+#include "file_mapping.h"
 
 void update_target_size_delete(String filename, String fileloc){
     int rc;
@@ -35,7 +36,7 @@ void update_target_size_delete(String filename, String fileloc){
     rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
     if (rc != SQLITE_OK){
        printf("Error: Prepare V2!\n");
-    } 
+    }
 
     if (sqlite3_step(res) == SQLITE_ROW){
 
@@ -49,7 +50,7 @@ void update_target_size_delete(String filename, String fileloc){
        		//printf("File Size: %lf\n", sqlite3_column_double(res1,0));
        		avspace = sqlite3_column_double(res, 0);
        		avspace = avspace + sqlite3_column_double(res1,0);
-    
+
        		sprintf(sql, "Update Target set avspace = %lf where mountpt = '%s';", avspace, fileloc);
        		//printf("SQL = %s\n", sql);
        	        rc = sqlite3_exec(db, sql, 0, 0, &err);
@@ -61,7 +62,7 @@ void update_target_size_delete(String filename, String fileloc){
     }
 
     sqlite3_finalize(res);
-    sqlite3_finalize(res1); 
+    sqlite3_finalize(res1);
 
     //char *err;
 
@@ -85,16 +86,16 @@ void update_target_size(sqlite3 *db, String filename, const char* fileloc){
 
     char *err = 0;
     const char *tail;
-  
+
     String file;
-    String sql;    
+    String sql;
 
     sqlite3_stmt *res;
- 
+
     strcpy(file,fileloc);
     strcat(file,"/");
-    strcat(file,filename);  
-    
+    strcat(file,filename);
+
     //get file size of mountpt
     sprintf(sql, "SELECT avspace FROM Target WHERE mountpt = '%s'", fileloc);
     rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
@@ -128,7 +129,7 @@ void update_target_size(sqlite3 *db, String filename, const char* fileloc){
 //this function insert a new entry to the volcontent table
 void update_list(sqlite3 *db, String filename, const char* fileloc){
     int rc;
-    
+
     char *err = 0;
 
     double sz;
@@ -158,7 +159,7 @@ void update_list(sqlite3 *db, String filename, const char* fileloc){
 void file_map_share(String filename){
     int rc;
     String sql, comm;
- 
+
     sqlite3 *db;
     sqlite3_stmt *res;
 
@@ -201,14 +202,14 @@ void file_map(String filename){
 
     sqlite3 *db;
     sqlite3_stmt *res;
-    
+
     char *err = 0;
     const char *tail;
 
     strcpy(sql, "SELECT avspace, mountpt FROM TARGET WHERE avspace = (SELECT max(avspace) from Target);");
 
     rc = sqlite3_open(DBNAME, &db); /*Open database*/
-    
+
     if (rc != SQLITE_OK){
        fprintf(stderr, "File Mapping: Can't open database: %s\n", sqlite3_errmsg(db));
        sqlite3_close(db);
@@ -223,7 +224,7 @@ void file_map(String filename){
     }
 
     if(sqlite3_step(res) == SQLITE_ROW){
-       
+
        //if (getCacheCount() <= MAX_CACHE_SIZE){ //max cache size is 10
        //   file_map_cache(filename);
        //}
@@ -232,9 +233,9 @@ void file_map(String filename){
        sprintf(comm, "mv -f '%s/%s' '%s/%s'", TEMP_LOC, filename, sqlite3_column_text(res,1), filename);
 //       printf("comm = %s\n", comm);
        system(comm);
-       update_list(db, filename, sqlite3_column_text(res,1));       
+       update_list(db, filename, sqlite3_column_text(res,1));
     }
-    
+
 
     sqlite3_finalize(res);
     sqlite3_close(db);

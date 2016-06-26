@@ -17,7 +17,7 @@
 
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
-#include "../Volume Management Module/make_volumes.h"
+#include "../volume_management/make_volumes.h"
 #include "initial_configurations.h"
 
 #include <stdlib.h>
@@ -134,7 +134,7 @@ void initialize() {
        strcat(assocvol,"/lv");
        strcat(assocvol,ptr1);
 
- 
+
        strcat(mountpt,"/mnt/lv");
        strcat(mountpt,ptr1);
 
@@ -146,7 +146,7 @@ void initialize() {
        double space_bytes = toBytes(avspace);
 
        sprintf(sql1,"update Target set assocvol = '%s', mountpt = '%s', avspace = %lf where tid = %d", assocvol, mountpt, space_bytes, counter);
- 
+
        printf("SQL1 = %s\n", sql1);
        rc = sqlite3_exec(db,sql1,0,0,0);
 
