@@ -14,7 +14,7 @@
 #include "../File Striping Module/file_striping.h"
 
 #define MAX_EVENTS 1024 /*Max. number of events to process at one go*/
-#define LEN_NAME 16 /*Assuming that the length of filename won't exceed 16 bytes*/
+#define LEN_NAME 32 /*Assuming that the length of filename won't exceed 16 bytes*/
 #define EVENT_SIZE ( sizeof (struct inotify_event) ) /*size of one event*/
 
 #define BUF_LEN  ( MAX_EVENTS * ( EVENT_SIZE + LEN_NAME )) /*buffer to store the data of events*/
@@ -34,7 +34,7 @@ void* watch_temp()
 
     /*add watch to directory*/
 //    wd = inotify_add_watch(fd, TEMP_LOC, IN_ALL_EVENTS);
-    wd = inotify_add_watch(fd, TEMP_LOC, IN_CLOSE_WRITE | IN_MOVED_TO);        
+    wd = inotify_add_watch(fd, TEMP_LOC, IN_CLOSE | IN_MOVED_TO);        
 
     if (wd == -1){
         printf("Couldn't add watch to %s\n", TEMP_LOC);
@@ -60,7 +60,7 @@ void* watch_temp()
            
            if (event->len){
 
-              if (event->mask & IN_CLOSE_WRITE){
+              if (event->mask & IN_CLOSE){
                   if (event->mask & IN_ISDIR)
                       printf("The directory %s open for writing was closed.\n", event->name);
                   else {

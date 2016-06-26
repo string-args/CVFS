@@ -14,7 +14,7 @@
 #include "watch_share.h"
 
 #define MAX_EVENTS 1024 /*Max. number of events to process at one go*/
-#define LEN_NAME 16 /*Assuming that the length of filename won't exceed 16 bytes*/
+#define LEN_NAME 32 /*Assuming that the length of filename won't exceed 16 bytes*/
 #define EVENT_SIZE ( sizeof (struct inotify_event) ) /*size of one event*/
 #define BUF_LEN  ( MAX_EVENTS * ( EVENT_SIZE + LEN_NAME )) /*buffer to store the data of events*/
 
@@ -35,7 +35,7 @@ void delete_linear_file(String filename){
 
     String query;
     sprintf(query, "SELECT fileloc FROM VolContent WHERE filename = '%s';", filename);
-    printf("Query = %s\n", query);
+    //printf("Query = %s\n", query);
     rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
     if (rc != SQLITE_OK){
       fprintf(stderr, "Delete Linear File() Error\n");
@@ -47,8 +47,8 @@ void delete_linear_file(String filename){
        sprintf(fileloc, "%s", sqlite3_column_text(res,0));
        sprintf(comm, "rm '%s/%s'", sqlite3_column_text(res,0), filename);
     }
-
-    printf("Filename : %s || Fileloc : %s\n", filename, fileloc);
+    sqlite3_finalize(res);
+    //printf("Filename : %s || Fileloc : %s\n", filename, fileloc);
     update_target_size_delete(filename, fileloc);
     system(comm);
     printf("File %s successfully deleted.\n", filename);
@@ -59,7 +59,7 @@ void delete_linear_file(String filename){
        fprintf(stderr, "Delete Linear File Error!\n");
     }
 
-    sqlite3_finalize(res);
+    //sqlite3_finalize(res);
     sqlite3_close(db);
 }
 
@@ -106,8 +106,9 @@ void delete_stripe_file(String filename)
 
 
     char percent = '%';
-    String query;
+    String query, sql;
     sprintf(query, "SELECT  filename, fileloc from VolContent where filename like '%c%s';", percent, filename, percent);
+    strcpy(sql, query);
     rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
     if (rc != SQLITE_OK){
        fprintf(stderr, "Delete Stripe File() Error\n");
@@ -115,34 +116,66 @@ void delete_stripe_file(String filename)
        exit(1);
     }
 
+    int count = 0;
+    while(sqlite3_step(res) == SQLITE_ROW){
+	count++;
+    }
+
+    String file_list[count];
+    String fileloc_list[count];
+    int x = 0;
     while (sqlite3_step(res) == SQLITE_ROW){
-       String comm;
+       //String comm;
 
        String file, fileloc;
        sprintf(file, "%s", sqlite3_column_text(res,0));
        sprintf(fileloc, "%s", sqlite3_column_text(res,1));
-       update_target_size_delete(file, fileloc);
+       strcpy(file_list[x], file);
+       strcpy(fileloc_list[x], fileloc);
+       x++;
+       //update_target_size_delete(file, fileloc);
 
-       sprintf(comm, "rm '%s/%s'", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
-       printf("File %s has been successfully deleted.\n", sqlite3_column_text(res,0));
-       system(comm);
+       //sprintf(comm, "rm '%s/%s'", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
+       //printf("File %s has been successfully deleted.\n", sqlite3_column_text(res,0));
+       //system(comm);
 
        //delete entry from volcontent
-       sprintf(query, "DELETE from VolContent where filename = '%s';", sqlite3_column_text(res,0));
+       /*sprintf(query, "DELETE from VolContent where filename = '%s';", sqlite3_column_text(res,0));
        rc = sqlite3_exec(db, query, 0, 0, 0);
        if (rc != SQLITE_OK){
           fprintf(stderr, "Delete Stripe File Entry() Error\n");
-       }
+       }*/
 
        //delete entry from cachecontent; check if filename contains part1.
        //delete from cachecontent db: because only part1. have entry in table
        if (strstr(sqlite3_column_text(res,0), "part1.") != NULL){
           sprintf(query, "DELETE from CacheContent where filename = '%s';", sqlite3_column_text(res,0));
+          printf("CacheQuery = %s\n", query);
           rc = sqlite3_exec(db, query, 0, 0, 0);
           if (rc != SQLITE_OK){
              fprintf(stderr, "Delete Stripe File Cache Entry() Error\n");
           }
        }
+    }
+
+    sqlite3_finalize(res);
+
+    int z = 0;
+    for (z = 0; z < count; z++){
+       String comm;
+       sprintf(comm, "rm '%s/%s'", fileloc_list[z], file_list[z]);
+       update_target_size_delete(file_list[z], fileloc_list[z]);
+       system(comm);
+       printf("File Part %s successfully deleted.\n", file_list[z]);
+    }
+
+    rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
+    while (sqlite3_step(res) == SQLITE_ROW){
+	sprintf(query, "DELETE from VolContent where filename = '%s';", sqlite3_column_text(res,0));
+    	rc = sqlite3_exec(db, query, 0, 0, 0);
+	if (rc != SQLITE_OK){
+	    printf("Delete Stripe File() Error!\n");
+        }
     }
 
     sqlite3_finalize(res);
@@ -202,8 +235,15 @@ void *watch_share()
     	printf("Watching:: %s\n", CACHE_LOC);
    }
 
+   wd = inotify_add_watch(fd, SHARE_LOC, IN_DELETE | IN_CREATE | IN_MODIFY);
+
+   if (wd != -1){
+	printf("Watching:: %s\n", SHARE_LOC);
+   }
+
     /*do it forever*/
     for(;;){
+	create_link();
        length = read(fd, buffer, BUF_LEN);
       
        if (length < 0){
@@ -215,6 +255,22 @@ void *watch_share()
 
            //printf("AAA* event is %d\n", event->mask);
          //if (event->len){
+	     if (event->mask & IN_CREATE){
+	   	  if (event->mask & IN_ISDIR){
+		      //do nothing
+		  } else {
+		      file_map_share(event->name);
+		  }
+	     }
+
+             if (event->mask & IN_MODIFY){
+		  if (event->mask & IN_ISDIR){
+			//do nothing
+		  } else {
+		     printf("File %s was modified.\n", event->name);
+		  }
+	     }
+
               if (event->mask & IN_OPEN){
                   if (event->mask & IN_ISDIR){
                       //printf("The directory %s was opened.\n", event->name);
@@ -227,7 +283,7 @@ void *watch_share()
                       if (strstr(event->name,"part1.") != NULL){
                       
                         incrementFrequency(event->name);
-                     /*   String comm, comm_out;
+                      /*  String comm, comm_out;
                         int inCache = 0;
                         sprintf(comm, "ls %s", CACHE_LOC);
                         runCommand(comm, comm_out);
@@ -239,6 +295,7 @@ void *watch_share()
                                  inCache = 1;
                                  break;
                              }
+			     ptr = strtok(NULL, "\n");
                         }                        
      
                         if (!inCache){

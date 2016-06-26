@@ -15,8 +15,8 @@ int main()
 
    //initialize();
    while(1){
-      pthread_create(&t[0], NULL, create_link, NULL);
-      //pthread_create(&t[1], NULL, watch_temp, NULL);
+      //pthread_create(&t[0], NULL, create_link, NULL);
+      pthread_create(&t[0], NULL, watch_temp, NULL);
       pthread_create(&t[1], NULL, watch_share, NULL);
       // pthread_create(&t[2], NULL, create_link, NULL);
    
