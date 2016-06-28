@@ -4,8 +4,10 @@
     requires:
         php5-sqlite
 */
+$config = 'cvfsweb.conf';
+$cvfs_dir = file_get_contents($config);
 // name and path of decommissioning program
-$PROGNAME = './decomm';
+$PROGNAME = trim($cvfs_dir) . '/decomm';
 $ok = 'SUCCESS';
 list($iqn, $mountpt) = explode('|', $_POST['node']);
 // execute decommissioning program

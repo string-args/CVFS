@@ -5,7 +5,7 @@ CC = gcc
 LIBS = -lpthread -lsqlite3
 MAIN = cvfs_driver
 
-all: $(MAIN)
+all: $(MAIN) add_target decomm
 
 $(MAIN): file_transaction/cvfs_driver.c cache_operation.o file_presentation.o initial_configurations.o file_striping.o file_mapping.o file_assembly.o make_volumes.o cmd_exec.o watch_dir.o watch_share.o
 	$(CC) file_transaction/cvfs_driver.c cache_operation.o file_presentation.o initial_configurations.o file_striping.o file_mapping.o file_assembly.o make_volumes.o cmd_exec.o watch_dir.o watch_share.o $(LIBS) -o $(MAIN)
@@ -39,3 +39,9 @@ watch_dir.o: file_transaction/watch_dir.c
 
 watch_share.o: file_transaction/watch_share.c
 	$(CC) -c file_transaction/watch_share.c
+
+add_target: WebSystem/add_target.c make_volumes.o cmd_exec.o
+	$(CC) WebSystem/add_target.c make_volumes.o cmd_exec.o -o add_target
+
+decomm: WebSystem/decomm.c make_volumes.o cmd_exec.o
+	$(CC) WebSystem/decomm.c cmd_exec.o -lsqlite3 -o decomm

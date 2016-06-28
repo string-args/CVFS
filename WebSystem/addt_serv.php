@@ -2,7 +2,9 @@
 /*
     server side code of target add page
 */
-$PROGNAME = './add_target';
+$config = 'cvfsweb.conf';
+$cvfs_dir = file_get_contents($config);
+$PROGNAME = trim($cvfs_dir) . '/add_target';
 $ok = 'SUCCESS';
 
 $comm = $PROGNAME . ' ' . $_POST['ipadd'];

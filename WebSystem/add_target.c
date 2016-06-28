@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
-#include "../Volume Management Module/make_volumes.h"
+#include "../volume_management/make_volumes.h"
 
 
 int main(int argc, char *argv[]) {

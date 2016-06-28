@@ -13,6 +13,7 @@
 
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
+#define DBNAME	"./Database/cvfs_db"
 
 static int callback(void *used, int argc, char **argv, char **colname) {
 	int i;
@@ -186,6 +187,6 @@ int main(int argc, char *argv[]) {
 	printf("SUCCESS");
 
 	//deactivate volume here
-	
+
 	return 0;
 }

@@ -13,7 +13,9 @@
         <h1>Select from available nodes</h1>
         <form action="decom_serv.php" method="post">
         <?php
-        $DBNAME = '../Database/cvfs_db';
+        $config = 'cvfsweb.conf';
+        $cvfs_dir = file_get_contents($config);
+        $DBNAME = trim($cvfs_dir) . '/Database/cvfs_db';
         $db = new SQLite3($DBNAME);
         $res = $db->query('SELECT * from Target;');
         while ($row = $res->fetchArray()) {
