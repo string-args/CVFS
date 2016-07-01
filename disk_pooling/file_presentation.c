@@ -16,15 +16,46 @@ static int callback(void *notUsed, int argc, char **argv, char **colname){
       exit(1);
    } else {
       //link only the part1
-      if (strstr(argv[0],"part1.") != NULL){
-        sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], argv[0], SHARE_LOC, argv[0]);
-        printf("Link Created: '/mnt/Share/%s'\n", argv[0]);
+
+	
+	
+	String filename = "";
+	String usename = "";
+	strcpy(filename, argv[0]);
+	char *p;
+	p = strtok(filename, "/");
+	if(p == NULL) {
+	    strcpy(usename, argv[0]);
+	} else {
+	    strcpy(usename, p);
+	}
+	//printf("usename = %s\n", usename);
+	
+	int exist = 0;
+	String ls = "", ls_out = "";
+	strcpy(ls, "ls /mnt/Share/");
+	runCommand(ls,ls_out);
+	char *ptr1 = strtok(ls_out, "\n");
+	while (ptr1 != NULL){
+		if (strcmp(ptr1,usename) == 0){
+			exist = 1;
+			break;			
+		}
+		ptr1 = strtok(NULL, "\n");
+	}
+	//strcpy(argv[0], usename);
+	//printf("exist = %d\n", exist);
+	if (!exist){
+      if (strstr(usename,"part1.") != NULL){
+        sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], usename, SHARE_LOC, usename);
+        printf("Link Created: '/mnt/Share/%s'\n", usename);
         system(comm);
-      } else if (strstr(argv[0], "part") == NULL){ //link linear files
-        sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], argv[0], SHARE_LOC, argv[0]);
-        printf("Link Created: '/mnt/Share/%s'\n", argv[0]);
-        system(comm); 
-      } 
+      } else if (strstr(usename, "part1.") == NULL){ //link linear files
+        sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], usename, SHARE_LOC, usename);
+        printf("Link Created: '/mnt/Share/%s'\n", usename);
+        printf("COMM = %s\n", comm);
+	system(comm); 
+      } }
       //sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], argv[0], SHARE_LOC, argv[0]);
       //printf("Link Created: '/mnt/Share/%s'\n", argv[0]);
       //printf("comm = %s\n", comm);

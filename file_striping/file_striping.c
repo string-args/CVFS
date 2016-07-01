@@ -44,7 +44,7 @@ void stripe(String filename){
        fclose(file_to_write);
        String mapfile;
        sprintf(mapfile, "part%d.%s", part_count, filename);
-       file_map(mapfile);
+       file_map(mapfile, "AIDZWHATTOPUT??");
        part_count++;
   }
   free(buffer);

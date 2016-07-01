@@ -194,7 +194,7 @@ void file_map_share(String filename){
 }
 
 //this function redirects the file to targets
-void file_map(String filename){
+void file_map(String fullpath, String filename){
     int rc;
 
     String sql;
@@ -230,10 +230,15 @@ void file_map(String filename){
        //}
 
        printf("File %s is redirected to %s.\n", filename, sqlite3_column_text(res,1));
-       sprintf(comm, "mv -f '%s/%s' '%s/%s'", TEMP_LOC, filename, sqlite3_column_text(res,1), filename);
+       sprintf(comm, "mv -f '%s' '%s/%s'", fullpath, sqlite3_column_text(res,1), filename);
 //       printf("comm = %s\n", comm);
        system(comm);
+	//this part update the entry of the file to volcontent table
        update_list(db, filename, sqlite3_column_text(res,1));
+       String ln = "";
+       sprintf(ln, "ln -s '%s/%s' '%s/%s'", sqlite3_column_text(res,1), filename, SHARE_LOC, filename);
+       //printf("Link Created: %s\n", ln);
+       system(ln);
     }
 
 

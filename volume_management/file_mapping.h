@@ -4,7 +4,7 @@
 */
 
 
-void file_map(String filename);
+void file_map(String fullpath, String filename);
 
 void file_map_cache(String filename);
 

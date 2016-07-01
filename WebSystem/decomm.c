@@ -13,7 +13,7 @@
 
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
-#define DBNAME	"./Database/cvfs_db"
+// #define DBNAME	"../Database/cvfs_db"	// we retain for now. but this not working
 
 static int callback(void *used, int argc, char **argv, char **colname) {
 	int i;
