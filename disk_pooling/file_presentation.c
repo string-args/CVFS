@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
@@ -17,8 +18,8 @@ static int callback(void *notUsed, int argc, char **argv, char **colname){
    } else {
       //link only the part1
 
-	
-	
+
+
 	String filename = "";
 	String usename = "";
 	strcpy(filename, argv[0]);
@@ -30,7 +31,7 @@ static int callback(void *notUsed, int argc, char **argv, char **colname){
 	    strcpy(usename, p);
 	}
 	//printf("usename = %s\n", usename);
-	
+
 	int exist = 0;
 	String ls = "", ls_out = "";
 	strcpy(ls, "ls /mnt/Share/");
@@ -39,7 +40,7 @@ static int callback(void *notUsed, int argc, char **argv, char **colname){
 	while (ptr1 != NULL){
 		if (strcmp(ptr1,usename) == 0){
 			exist = 1;
-			break;			
+			break;
 		}
 		ptr1 = strtok(NULL, "\n");
 	}
@@ -47,14 +48,30 @@ static int callback(void *notUsed, int argc, char **argv, char **colname){
 	//printf("exist = %d\n", exist);
 	if (!exist){
       if (strstr(usename,"part1.") != NULL){
-        sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], usename, SHARE_LOC, usename);
-        printf("Link Created: '/mnt/Share/%s'\n", usename);
-        system(comm);
+        // sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], usename, SHARE_LOC, usename);
+
+        String sors = "", dest = "";
+		sprintf(sors, "'%s/%s'", argv[1], usename);
+		sprintf(dest, "'%s/%s'", SHARE_LOC, usename);
+        if(symlink(sors, dest) == 0) {
+            printf("Link Created: '%s'\n", dest);
+        } else {
+            printf("!!! Error creating link %s", dest);;
+        }
+        // system(comm);
       } else if (strstr(usename, "part1.") == NULL){ //link linear files
-        sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], usename, SHARE_LOC, usename);
-        printf("Link Created: '/mnt/Share/%s'\n", usename);
-        printf("COMM = %s\n", comm);
-	system(comm); 
+        // sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], usename, SHARE_LOC, usename);
+        // printf("Link Created: '/mnt/Share/%s'\n", usename);
+        String sors = "", dest = "";
+        sprintf(sors, "'%s/%s'", argv[1], usename);
+		sprintf(dest, "'%s/%s'", SHARE_LOC, usename);
+        if(symlink(sors, dest) == 0) {
+            printf("Link Created: '%s'\n", dest);
+        } else {
+            printf("!!! Error creating link %s", dest);
+        }
+        // printf("COMM = %s\n", comm);
+    	// system(comm);
       } }
       //sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], argv[0], SHARE_LOC, argv[0]);
       //printf("Link Created: '/mnt/Share/%s'\n", argv[0]);
@@ -66,14 +83,14 @@ static int callback(void *notUsed, int argc, char **argv, char **colname){
 
 void* create_link(){
    int tcount = 0;
-   int rc;  
+   int rc;
 
-   char *err = 0;  
+   char *err = 0;
 
    String file_list, comm, query, comm_out;
 
    sqlite3 *db;
-   
+
    rc = sqlite3_open(DBNAME, &db);
    if (rc != SQLITE_OK){
      fprintf(stderr, "File Presentation: Can't open database: %s.\n", sqlite3_errmsg(db));
@@ -86,7 +103,7 @@ void* create_link(){
 
    strcpy(file_list, "");
    strcpy(comm_out, "");
-   //printf("File Presentation:");   
+   //printf("File Presentation:");
    runCommand(comm, comm_out);
 
    char *ptr = strtok(comm_out, "\n");
@@ -99,31 +116,39 @@ void* create_link(){
       if (ptr != NULL){
         strcat(file_list,",");
       }
-   }   
+   }
 
-   //sprintf(file_list, "%s", comm_out);    
+   //sprintf(file_list, "%s", comm_out);
    //printf("File List: %s\n", file_list);
 
    sprintf(query, "SELECT filename, fileloc FROM VolContent WHERE filename NOT IN (%s);", file_list);
-   
+
    //printf("Query = %s\n", query);
-   
+
 
    rc = sqlite3_exec(db, query, callback, 0, &err);
    if (rc != SQLITE_OK){
       fprintf(stderr, "SQL Error: %s.\n", err);
       sqlite3_free(err);
    }
-  
+
    sqlite3_close(db);
 }
 
 void create_link_cache(String filename){
-   String ln;
+   // String ln;
 
-   sprintf(ln, "ln -s '%s/part1.%s' '%s/part1.%s'", CACHE_LOC, filename, SHARE_LOC, filename);
-   //printf("ln := %s\n", ln);
-   system(ln);   
+   // sprintf(ln, "ln -s '%s/part1.%s' '%s/part1.%s'", CACHE_LOC, filename, SHARE_LOC, filename);
+    String sors = "", dest = "";
+    sprintf(sors, "'%s/part1.%s'", CACHE_LOC, filename);
+    sprintf(dest, "'%s/part1.%s'", SHARE_LOC, filename);
+    if(symlink(sors, dest) == 0) {
+        printf("Link Created: '%s'\n", dest);
+    } else {
+        printf("!!! Error creating link %s", dest);
+    }
+   // printf("ln(dest) := %s\n", dest);
+   // system(ln);
    printf("Created Link for file in Cache: %s\n" , filename);
 }
 
@@ -133,8 +158,17 @@ void update_link_cache(String filename, String fileloc){
     //sprintf(rm, "rm '/mnt/Share/%s'", filename);
     //printf("Rm = %s\n", rm);
     //system(rm);
-    sprintf(ln, "ln -s '%s/%s' '%s/%s'", fileloc, filename, SHARE_LOC, filename);
+    // sprintf(ln, "ln -s '%s/%s' '%s/%s'", fileloc, filename, SHARE_LOC, filename);
     //printf("LN = %s\n", ln);
-    system(ln);
+    // system(ln);
+    String sors = "", dest = "";
+	sprintf(sors, "'%s/%s'", fileloc, filename);
+	sprintf(dest, "'%s/%s'", SHARE_LOC, filename);
+    if(symlink(sors, dest) == 0) {
+        printf("Link Created: '%s'\n", dest);
+    } else {
+        printf("!!! Error creating link %s", dest);
+    }
+
     printf("Update Link for file: %s\n", filename);
 }

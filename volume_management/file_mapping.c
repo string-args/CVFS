@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <sqlite3.h>
 
@@ -236,9 +237,16 @@ void file_map(String fullpath, String filename){
 	//this part update the entry of the file to volcontent table
        update_list(db, filename, sqlite3_column_text(res,1));
        String ln = "";
-       sprintf(ln, "ln -s '%s/%s' '%s/%s'", sqlite3_column_text(res,1), filename, SHARE_LOC, filename);
-       //printf("Link Created: %s\n", ln);
-       system(ln);
+       //sprintf(ln, "ln -s '%s/%s' '%s/%s'", sqlite3_column_text(res,1), filename, SHARE_LOC, filename);
+       String sors = "", dest = "";
+       sprintf(sors, "'%s/%s'", sqlite3_column_text(res,1), filename);
+       sprintf(dest, "'%s/%s'", SHARE_LOC, filename);
+       if(symlink(sors, dest) == 0) {
+           printf("Link Created: '%s'\n", dest);
+       } else {
+           printf("!!! Error creating link %s", dest);
+       }
+       //system(ln);
     }
 
 

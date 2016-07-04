@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -57,9 +58,18 @@ void make_folder(String root){
 	    if (strcmp(sqlite3_column_text(res,0), "/mnt/lvsdb") == 0){
 		printf("ROOT: %s\n", root);
 
-		String ln = "";
-		sprintf(ln, "ln -s '%s/%s' '%s/%s'", sqlite3_column_text(res,0), root, SHARE_LOC, root);
-		printf("LN = %s\n", ln);
+		// String ln = "";
+		// sprintf(ln, "ln -s '%s/%s' '%s/%s'", sqlite3_column_text(res,0), root, SHARE_LOC, root);
+
+		String sors = "", dest = "";
+		sprintf(sors, "'%s/%s'", sqlite3_column_text(res,0), root);
+		sprintf(dest, "'%s/%s'", SHARE_LOC, root);
+		if(symlink(sors, dest) == 0) {
+            printf("Link Created: '%s'\n", dest);
+        } else {
+            printf("!!! Error creating link %s", dest);
+        }
+	// printf("LN(dest) = %s\n", dest);
 		//system(ln);
 	    }
 
