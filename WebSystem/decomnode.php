@@ -16,6 +16,7 @@
         $config = 'cvfsweb.conf';
         $cvfs_dir = file_get_contents($config);
         $DBNAME = trim($cvfs_dir) . '/Database/cvfs_db';
+	echo "DBNAME = " . $DBNAME;
         $db = new SQLite3($DBNAME);
         $res = $db->query('SELECT * from Target;');
         while ($row = $res->fetchArray()) {

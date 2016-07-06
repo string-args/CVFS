@@ -13,15 +13,15 @@
 
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
-// #define DBNAME	"../Database/cvfs_db"	// we retain for now. but this not working
+#define DBNAME	"/home/cvfs-initiator/Desktop/updated_repo/Database/cvfs_db"	// for some reason this should be full path
 
 static int callback(void *used, int argc, char **argv, char **colname) {
 	int i;
 	String comm = "";
 	long occsp = (long)used;
 	if(argc != 1) {
-		fprintf(stderr, "Error in database table: missing columns\n");
-		printf("FAILED");
+		fprintf(stdout, "Error in database table: missing columns\n");
+		printf("FAILED0");
 		exit(1);
 	} else {
 		// compare if the available space in other targets can accomodate
@@ -33,7 +33,7 @@ static int callback(void *used, int argc, char **argv, char **colname) {
 
 		} else {
 			printf("You cannot decommission, not enough space.\n");
-			printf("FAILED");
+			printf("FAILED1");
 			exit(0);
 		}
 	}
@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 		printf("FATAL: Program takes exactly 2 arguments.\n");
 		printf("Usage:\n");
 		printf("\tdecomm <IQN> <mount point>\n");	// this is to limit db queries
-		printf("FAILED");
+		printf("FAILED2");
 		exit(1);
 	}
 
@@ -70,16 +70,16 @@ int main(int argc, char *argv[]) {
 	printf("decomm: Opening database %s\n", DBNAME);
 	rc = sqlite3_open(DBNAME, &db);
 	if(rc) {
-		fprintf(stderr, "Can\'t open database %s\n", sqlite3_errmsg(db));
+		fprintf(stdout, "Can\'t open database %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
-		printf("FAILED");
+		printf("FAILED3");
 		exit(1);
 	}
 
 	sprintf(query, "SELECT sum(avspace) FROM Target WHERE iqn != '%s';", iqn);
 	rc = sqlite3_exec(db, query, callback, (void *)occsp, &errmsg);
 	if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL Error: %s\n", errmsg);
+		fprintf(stdout, "SQL Error: %s\n", errmsg);
 		sqlite3_free(errmsg);
 	}
 
@@ -88,25 +88,28 @@ int main(int argc, char *argv[]) {
 	// removing node in the target db
 	strcpy(query, "");
 	sprintf(query, "DELETE FROM Target WHERE iqn = '%s';", iqn);
+	printf("before delete\n");
 	rc = sqlite3_exec(db, query, 0, 0, &errmsg);
 	if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL Error: %s\n", errmsg);
+		fprintf(stdout, "SQL Error: %s\n", errmsg);
 		sqlite3_free(errmsg);
-		printf("FAILED");
+		printf("FAILED4");
 		exit(1);
 	}
 	// since we cannot use file_map from file_mapping.c, we do another version of it here
 
+	printf("selecting from volcontent\n");
+
 	// select all files in dmount
 	strcpy(query, "");
-	sprintf(query, "SELECT filename FROM VolContent WHERE location = '%s';", dmount);
+	sprintf(query, "SELECT filename FROM VolContent WHERE fileloc = '%s';", dmount);
 	sqlite3_stmt *res, *res2;
 	const char *tail;
 	rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
     if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL Error: %s.\n", sqlite3_errmsg(db));
+		fprintf(stdout, "SQL Error: %s.\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
-		printf("FAILED");
+		printf("FAILED5");
 		exit(1);
     }
 
@@ -120,13 +123,13 @@ int main(int argc, char *argv[]) {
 		strcpy(query2, "SELECT avspace, mountpt, tid FROM TARGET WHERE avspace = (SELECT max(avspace) from Target);");
 		rc = sqlite3_prepare_v2(db, query2, 1000, &res2, &tail);
 	    if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL Error: %s.\n", sqlite3_errmsg(db));
+			fprintf(stdout, "SQL Error: %s.\n", sqlite3_errmsg(db));
 			sqlite3_close(db);
-			printf("FAILED");
+			printf("FAILED6");
 			exit(1);
 	    }
 	    if (sqlite3_step(res2) == SQLITE_ROW) {
-			newavspace = sqlite3_column_double(res,0);
+			newavspace = sqlite3_column_double(res2,0);
 			strcpy(newloc, sqlite3_column_text(res2, 1));
 			newtid = sqlite3_column_int(res2, 2);
 			printf("File %s is transfered to %s.\n", filename, newloc);
@@ -139,23 +142,23 @@ int main(int argc, char *argv[]) {
 
 		// update volcontent
 		strcpy(query2, "");
-		sprintf(query2, "UPDATE VolContent SET location = %s, tid = %d WHERE filename = %s", newloc, newtid, filename);
+		sprintf(query2, "UPDATE VolContent SET fileloc = '%s' WHERE filename = '%s'", newloc, filename);
 		rc = sqlite3_exec(db, query2, 0, 0, &errmsg);
 		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL Error on UPDATE VolContent: %s\n", errmsg);
+			fprintf(stdout, "SQL Error on UPDATE VolContent: %s\n", errmsg);
 			sqlite3_free(errmsg);
-			printf("FAILED");
+			printf("FAILED7");
 			exit(1);
 		}
 
 		// update cache content
 		strcpy(query2, "");
-		sprintf(query2, "UPDATE CacheContent SET location = %s WHERE filename = %s", newloc, filename);
+		sprintf(query2, "UPDATE CacheContent SET mountpt = '%s' WHERE filename = '%s'", newloc, filename);
 		rc = sqlite3_exec(db, query2, 0, 0, &errmsg);
 		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL Error on UPDATE CacheContent: %s\n", errmsg);
+			fprintf(stdout, "SQL Error on UPDATE CacheContent: %s\n", errmsg);
 			sqlite3_free(errmsg);
-			printf("FAILED");
+			printf("FAILED8");
 			exit(1);
 		}
 
@@ -166,12 +169,15 @@ int main(int argc, char *argv[]) {
 		fseek(fp, 0L, SEEK_END);
 		double sz = ftell(fp); //get filesize of file
 		newavspace = newavspace - sz;
-		sprintf(query2, "UPDATE Target SET avspace = %lf WHERE tid = '%d';", newavspace, newtid);
+		printf("longname=%s\n", longname);
+		printf("newavspace = %lf\n", newavspace);
+		printf("size=%lf\n", sz);
+		sprintf(query2, "UPDATE Target SET avspace = '%lf' WHERE tid = '%d';", newavspace, newtid);
 		rc = sqlite3_exec(db, query2, 0, 0, &errmsg);
 		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL Error on UPDATE Target: %s\n", errmsg);
+			fprintf(stdout, "SQL Error on UPDATE Target: %s\n", errmsg);
 			sqlite3_free(errmsg);
-			printf("FAILED");
+			printf("FAILED9");
 			exit(1);
 		}
 	}

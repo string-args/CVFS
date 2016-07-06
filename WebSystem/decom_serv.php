@@ -12,9 +12,11 @@ $ok = 'SUCCESS';
 list($iqn, $mountpt) = explode('|', $_POST['node']);
 // execute decommissioning program
 $comm = $PROGNAME . ' ' . $iqn . ' ' . $mountpt;
+echo "comm = " . $comm;
 $status = exec($comm, $pout);
 // we can print blah blah here, but we can really just redirect to fail / success page
 // or even just redirect to homepage
+echo "STATUS = " . $status;
 if ($status != $ok) {
     echo 'Decommissioning Failed <br />';
     foreach ($pout as $l) {
