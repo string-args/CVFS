@@ -11,7 +11,7 @@ $PROGNAME = trim($cvfs_dir) . '/decomm';
 $ok = 'SUCCESS';
 list($iqn, $mountpt) = explode('|', $_POST['node']);
 // execute decommissioning program
-$comm = $PROGNAME . ' ' . $iqn . ' ' . $mountpt;
+$comm = $PROGNAME . ' ' . $iqn . ' ' . $mountpt . ' 2>&1';
 echo "comm = " . $comm;
 $status = exec($comm, $pout);
 // we can print blah blah here, but we can really just redirect to fail / success page

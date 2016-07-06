@@ -20,7 +20,7 @@ static int callback(void *used, int argc, char **argv, char **colname) {
 	String comm = "";
 	long occsp = (long)used;
 	if(argc != 1) {
-		fprintf(stdout, "Error in database table: missing columns\n");
+		fprintf(stderr, "Error in database table: missing columns\n");
 		printf("FAILED0");
 		exit(1);
 	} else {
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 	printf("decomm: Opening database %s\n", DBNAME);
 	rc = sqlite3_open(DBNAME, &db);
 	if(rc) {
-		fprintf(stdout, "Can\'t open database %s\n", sqlite3_errmsg(db));
+		fprintf(stderr, "Can\'t open database %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 		printf("FAILED3");
 		exit(1);
@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
 	sprintf(query, "SELECT sum(avspace) FROM Target WHERE iqn != '%s';", iqn);
 	rc = sqlite3_exec(db, query, callback, (void *)occsp, &errmsg);
 	if (rc != SQLITE_OK) {
-		fprintf(stdout, "SQL Error: %s\n", errmsg);
+		fprintf(stderr, "SQL Error: %s\n", errmsg);
 		sqlite3_free(errmsg);
 	}
 
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 	printf("before delete\n");
 	rc = sqlite3_exec(db, query, 0, 0, &errmsg);
 	if (rc != SQLITE_OK) {
-		fprintf(stdout, "SQL Error: %s\n", errmsg);
+		fprintf(stderr, "SQL Error: %s\n", errmsg);
 		sqlite3_free(errmsg);
 		printf("FAILED4");
 		exit(1);
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
 	const char *tail;
 	rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
     if (rc != SQLITE_OK) {
-		fprintf(stdout, "SQL Error: %s.\n", sqlite3_errmsg(db));
+		fprintf(stderr, "SQL Error: %s.\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 		printf("FAILED5");
 		exit(1);
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
 		strcpy(query2, "SELECT avspace, mountpt, tid FROM TARGET WHERE avspace = (SELECT max(avspace) from Target);");
 		rc = sqlite3_prepare_v2(db, query2, 1000, &res2, &tail);
 	    if (rc != SQLITE_OK) {
-			fprintf(stdout, "SQL Error: %s.\n", sqlite3_errmsg(db));
+			fprintf(stderr, "SQL Error: %s.\n", sqlite3_errmsg(db));
 			sqlite3_close(db);
 			printf("FAILED6");
 			exit(1);
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
 		sprintf(query2, "UPDATE VolContent SET fileloc = '%s' WHERE filename = '%s'", newloc, filename);
 		rc = sqlite3_exec(db, query2, 0, 0, &errmsg);
 		if (rc != SQLITE_OK) {
-			fprintf(stdout, "SQL Error on UPDATE VolContent: %s\n", errmsg);
+			fprintf(stderr, "SQL Error on UPDATE VolContent: %s\n", errmsg);
 			sqlite3_free(errmsg);
 			printf("FAILED7");
 			exit(1);
@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
 		sprintf(query2, "UPDATE CacheContent SET mountpt = '%s' WHERE filename = '%s'", newloc, filename);
 		rc = sqlite3_exec(db, query2, 0, 0, &errmsg);
 		if (rc != SQLITE_OK) {
-			fprintf(stdout, "SQL Error on UPDATE CacheContent: %s\n", errmsg);
+			fprintf(stderr, "SQL Error on UPDATE CacheContent: %s\n", errmsg);
 			sqlite3_free(errmsg);
 			printf("FAILED8");
 			exit(1);
@@ -175,7 +175,7 @@ int main(int argc, char *argv[]) {
 		sprintf(query2, "UPDATE Target SET avspace = '%lf' WHERE tid = '%d';", newavspace, newtid);
 		rc = sqlite3_exec(db, query2, 0, 0, &errmsg);
 		if (rc != SQLITE_OK) {
-			fprintf(stdout, "SQL Error on UPDATE Target: %s\n", errmsg);
+			fprintf(stderr, "SQL Error on UPDATE Target: %s\n", errmsg);
 			sqlite3_free(errmsg);
 			printf("FAILED9");
 			exit(1);
