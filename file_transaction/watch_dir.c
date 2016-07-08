@@ -55,6 +55,11 @@ void make_folder(String root){
 		sprintf(mkdir, "mkdir '%s/%s'", sqlite3_column_text(res,0), root);
 		//printf("MKDIR = %s\n", mkdir);
 		system(mkdir);
+
+		String chmod;
+		sprintf(chmod, "chmod -R 777 '%s/%s'", sqlite3_column_text(res,0), root);
+		system(chmod);
+
 	    if (strcmp(sqlite3_column_text(res,0), "/mnt/lvsdb") == 0){
 		printf("ROOT: %s\n", root);
 
@@ -62,13 +67,14 @@ void make_folder(String root){
 		// sprintf(ln, "ln -s '%s/%s' '%s/%s'", sqlite3_column_text(res,0), root, SHARE_LOC, root);
 
 		String sors = "", dest = "";
-		sprintf(sors, "'%s/%s'", sqlite3_column_text(res,0), root);
-		sprintf(dest, "'%s/%s'", SHARE_LOC, root);
+		sprintf(sors, "%s/%s", sqlite3_column_text(res,0), root);
+		sprintf(dest, "%s/%s", SHARE_LOC, root);
 		if(symlink(sors, dest) == 0) {
-            printf("Link Created: '%s'\n", dest);
-        } else {
-            printf("!!! Error creating link %s", dest);
-        }
+            		printf("Link Created: '%s'\n", dest);
+        	} else {
+            	
+	//printf("!!! Error creating link %s\n", dest);
+        	}
 	// printf("LN(dest) = %s\n", dest);
 		//system(ln);
 	    }
@@ -168,6 +174,10 @@ void* watch_temp()
 			//sprintf(mkdir, "cp '%s/%s' '%s/%s'", TEMP_LOC, event->name, SHARE_LOC, event->name);
 			//printf("CP: %s\n", mkdir);
 			//system(mkdir);
+			//String cp = "";
+			//sprintf(cp, "cp -r '%s/%s' '%s/.'", TEMP_LOC, event->name, SHARE_LOC, event->name);
+			//system(cp);
+			//system(rsync);
 			make_folder(event->name);
 			//sprintf(mkdir, "mkdir -p '%s/%s'", SHARE_LOC, event->name);
 
@@ -175,6 +185,9 @@ void* watch_temp()
 		     }else{
 			String x;
 			sprintf(x, "%s%s", root, event->name);
+			//String cp = "";
+			//sprintf(cp, "cp -r '%s/%s' '%s/%s'", TEMP_LOC, root, SHARE_LOC, root);
+			//system(cp);
 			//sprintf(rm, "rm -rf '%s/%s'", SHARE_LOC, x);
 			//system(rm);
 			//sprintf(mkdir, "cp '%s/%s' '%s/%s'", TEMP_LOC, x, SHARE_LOC, x);
@@ -219,8 +232,8 @@ void* watch_temp()
 			}
 		      }
 
-                      String filepath;
-		      String filename;
+                      String filepath = "";
+		      String filename = "";
 		      sprintf(filename, "%s%s", root, event->name);
                       FILE *fp;
                       sprintf(filepath, "%s/%s%s", TEMP_LOC, root, event->name);
@@ -245,6 +258,7 @@ void* watch_temp()
                            stripe(event->name);
                            refreshCache();
 			*/
+			   stripe(root, filepath, filename);
                         } else {
 			   printf("Transferring %s to targets...\n", filename);
                            file_map(filepath, filename);

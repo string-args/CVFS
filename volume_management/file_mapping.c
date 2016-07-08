@@ -231,21 +231,25 @@ void file_map(String fullpath, String filename){
        //}
 
        printf("File %s is redirected to %s.\n", filename, sqlite3_column_text(res,1));
-       sprintf(comm, "mv -f '%s' '%s/%s'", fullpath, sqlite3_column_text(res,1), filename);
-//       printf("comm = %s\n", comm);
+       sprintf(comm, "mv '%s' '%s/%s'", fullpath, sqlite3_column_text(res,1), filename);
+       //printf("mv = %s\n", comm);
        system(comm);
 	//this part update the entry of the file to volcontent table
        update_list(db, filename, sqlite3_column_text(res,1));
-       String ln = "";
+       //String ln = "";
        //sprintf(ln, "ln -s '%s/%s' '%s/%s'", sqlite3_column_text(res,1), filename, SHARE_LOC, filename);
+
        String sors = "", dest = "";
-       sprintf(sors, "'%s/%s'", sqlite3_column_text(res,1), filename);
-       sprintf(dest, "'%s/%s'", SHARE_LOC, filename);
-       if(symlink(sors, dest) == 0) {
-           printf("Link Created: '%s'\n", dest);
-       } else {
-           printf("!!! Error creating link %s", dest);
-       }
+       if (strstr(filename, "part1.") != NULL || strstr(filename, "part") == NULL){ //for stripe file
+       		sprintf(sors, "%s/%s", sqlite3_column_text(res,1), filename);
+       		sprintf(dest, "%s/%s", SHARE_LOC, filename);
+       
+       		if(symlink(sors, dest) == 0) {
+           		printf("Link Created: '%s'\n", dest);
+       		} else {
+           		printf("Error creating link %s\n", dest);
+       		}
+       } 
        //system(ln);
     }
 
