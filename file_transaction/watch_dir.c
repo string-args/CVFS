@@ -10,6 +10,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <sqlite3.h>
+#include <syslog.h>
 
 #include "../Global/global_definitions.h"
 #include "../volume_management/file_mapping.h"
@@ -53,7 +54,7 @@ void make_folder(String root){
 	while (sqlite3_step(res) == SQLITE_ROW){
 		String mkdir;
 		sprintf(mkdir, "mkdir '%s/%s'", sqlite3_column_text(res,0), root);
-		//printf("MKDIR = %s\n", mkdir);
+		//syslog(LOG_INFO, "FileTransaction: MKDIR = %s\n", mkdir);
 		system(mkdir);
 
 		String chmod;
@@ -61,7 +62,7 @@ void make_folder(String root){
 		system(chmod);
 
 	    if (strcmp(sqlite3_column_text(res,0), "/mnt/lvsdb") == 0){
-		printf("ROOT: %s\n", root);
+		// syslog(LOG_INFO, "FileTransaction: ROOT: %s\n", root);
 
 		// String ln = "";
 		// sprintf(ln, "ln -s '%s/%s' '%s/%s'", sqlite3_column_text(res,0), root, SHARE_LOC, root);
@@ -70,12 +71,12 @@ void make_folder(String root){
 		sprintf(sors, "%s/%s", sqlite3_column_text(res,0), root);
 		sprintf(dest, "%s/%s", SHARE_LOC, root);
 		if(symlink(sors, dest) == 0) {
-            		printf("Link Created: '%s'\n", dest);
+            		syslog(LOG_INFO, "FileTransaction: Link Created: '%s'\n", dest);
         	} else {
-            	
+
 	//printf("!!! Error creating link %s\n", dest);
         	}
-	// printf("LN(dest) = %s\n", dest);
+	// syslog(LOG_INFO, "FileTransaction: LN(dest) = %s\n", dest);
 		//system(ln);
 	    }
 
@@ -120,9 +121,9 @@ void* watch_temp()
     strcpy(dirs[counter-1], TEMP_LOC);
 
     if (wd == -1){
-        printf("Couldn't add watch to %s\n", TEMP_LOC);
+        syslog(LOG_INFO, "FileTransaction: Couldn't add watch to %s\n", TEMP_LOC);
     } else {
-        printf("Watching:: %s\n", TEMP_LOC);
+        syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", TEMP_LOC);
     }
 
     /*do it forever*/
@@ -144,7 +145,7 @@ void* watch_temp()
            if (event->len){
 
 
-              //printf("AAAA is %x\n", event->mask);
+              //syslog(LOG_INFO, "FileTransaction: AAAA is %x\n", event->mask);
 	      if (event->mask & IN_CREATE){
 		if (event->mask & IN_ISDIR){
 		     printf("%s is created.\n", event->name);
@@ -172,7 +173,7 @@ void* watch_temp()
 		        //sprintf(rm, "rm -rf '%s/%s'", SHARE_LOC, event->name);
 			//system(rm);
 			//sprintf(mkdir, "cp '%s/%s' '%s/%s'", TEMP_LOC, event->name, SHARE_LOC, event->name);
-			//printf("CP: %s\n", mkdir);
+			//syslog(LOG_INFO, "FileTransaction: CP: %s\n", mkdir);
 			//system(mkdir);
 			//String cp = "";
 			//sprintf(cp, "cp -r '%s/%s' '%s/.'", TEMP_LOC, event->name, SHARE_LOC, event->name);
@@ -191,7 +192,7 @@ void* watch_temp()
 			//sprintf(rm, "rm -rf '%s/%s'", SHARE_LOC, x);
 			//system(rm);
 			//sprintf(mkdir, "cp '%s/%s' '%s/%s'", TEMP_LOC, x, SHARE_LOC, x);
-			//printf("CP :'%s'\n", mkdir);
+			//syslog(LOG_INFO, "FileTransaction: CP :'%s'\n", mkdir);
 			//system(mkdir);
 			make_folder(x);
 			//sprintf(mkdir, "mkdir -p '%s/%s'", SHARE_LOC, x);
@@ -207,7 +208,7 @@ void* watch_temp()
 		     //make_folder(root);
 
 
-		     //printf("Root Directory: %s%s\n", root, event->name);
+		     //syslog(LOG_INFO, "FileTransaction: Root Directory: %s%s\n", root, event->name);
                      sprintf(dir_to_watch,"%s/%s%s", TEMP_LOC, root, event->name);
 		     wd = inotify_add_watch(fd, dir_to_watch, IN_ALL_EVENTS);
                      wds[counter] = wd;
@@ -237,7 +238,7 @@ void* watch_temp()
 		      sprintf(filename, "%s%s", root, event->name);
                       FILE *fp;
                       sprintf(filepath, "%s/%s%s", TEMP_LOC, root, event->name);
-		      //printf("hahahaa: filepath:%s\n\tfilename:%s", filepath, filename);
+		      //syslog(LOG_INFO, "FileTransaction: hahahaa: filepath:%s\n\tfilename:%s", filepath, filename);
                       fp = fopen(filepath, "rb");
                       if (fp != NULL){
                         fseek(fp, 0L, SEEK_END);
@@ -247,9 +248,9 @@ void* watch_temp()
                         if (sz > STRIPE_SIZE){
                            //before striping, check cache
                         /*   printf("%s will be striped.\n", event->name);
-			   printf("Inserting into CacheContent...\n");
+			   syslog(LOG_INFO, "FileTransaction: Inserting into CacheContent...\n");
                            update_cache_list(event->name);
-                           printf("Cache Count: %d\n", getCacheCount());
+                           syslog(LOG_INFO, "FileTransaction: Cache Count: %d\n", getCacheCount());
                            if (getCacheCount() < MAX_CACHE_SIZE) { //max cache size is 10
                               printf("%s will be put to cache.\n", event->name);
                               file_map_cache(event->name);
@@ -260,7 +261,7 @@ void* watch_temp()
 			*/
 			   stripe(root, filepath, filename);
                         } else {
-			   printf("Transferring %s to targets...\n", filename);
+			   syslog(LOG_INFO, "FileTransaction: Transferring %s to targets...\n", filename);
                            file_map(filepath, filename);
                         }
 
@@ -269,9 +270,9 @@ void* watch_temp()
 
               if (event->mask & IN_MOVED_TO){
                   if (event->mask & IN_ISDIR)
-                      printf("The directory %s is transferring.\n", event->name);
+                      syslog(LOG_INFO, "FileTransaction: The directory %s is transferring.\n", event->name);
                   else
-                      printf("The file %s is transferring.\n", event->name);
+                      syslog(LOG_INFO, "FileTransaction: The file %s is transferring.\n", event->name);
               }
 
 

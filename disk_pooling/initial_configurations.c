@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sqlite3.h>
+#include <syslog.h>
 
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
@@ -40,7 +41,7 @@ double toBytes(String sUnit) {
     } else if (strcmp(ptr, TBSTR) == 0) {
         val *= 1000000000000;
     }
-    // printf("val = %f\n", val);
+    // syslog(LOG_INFO, "DiskPooling: val = %f\n", val);
     return val;
 }
 
@@ -69,14 +70,14 @@ void initialize() {
     // what if interface is not eth0? what if eth1...?
     runCommand("ip addr show eth0 | grep \'inet \' | awk \'{print $2}\' | cut -f1 -d\'/\'", ip);
     runCommand("ip addr show eth0 | grep \'inet \' | awk \'{print $2}\' | cut -f2 -d\'/\'", netmask);
-    printf("*****  Network information  *****\n");
+    // printf("*****  Network information  *****\n");
     ip[strlen(ip)] = '\0';
     netmask[strlen(netmask)] = '\0';
-    printf("IP address: %s/%s\n\n", ip, netmask);
+    syslog(LOG_INFO, "DiskPooling: Initiator IP address: %s/%s\n\n", ip, netmask);
 
 
     // do nmap for active hosts with port 3260 open
-    printf("Scanning network...\n");
+    // syslog(LOG_INFO, "DiskPooling: Scanning network...\n");
     sprintf(command, "nmap -v -n %s%s%s -p 3260 | grep open | awk '/Discovered/ {print $NF}'", ip, "/", netmask);
     runCommand(command, alltargetsStr);
 
@@ -116,19 +117,19 @@ void initialize() {
 
     runCommand("cat '../File Transaction Module/AvailableDisks.txt' | grep sd[b-z] | awk '{print $4}'",disklist);
 
-    printf("DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    // syslog(LOG_INFO, "DiskPooling: DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
-    printf("Disklist before: %s\n\n", disklist);
+    // syslog(LOG_INFO, "DiskPooling: Disklist before: %s\n\n", disklist);
     //strcat(disklist, "\n");
     char *ptr1;
     //int counter = 1;    // to aidz: di ako sure dito ah.. pano kung nag delete then init_conf sure ba na 1 lagi tapos sunod sunod?
     ptr1 = strtok(disklist,"\n");
-    printf("PTR Before: %s\n\n", ptr1);
-    printf("DIskList after: %s\n\n", disklist);
+    // syslog(LOG_INFO, "DiskPooling: PTR Before: %s\n\n", ptr1);
+    // syslog(LOG_INFO, "DiskPooling: DIskList after: %s\n\n", disklist);
     counter = 1;
     while(ptr1 != NULL){
-       printf("PTR: %s\n\n", ptr1);
-       printf("INSIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+    //    syslog(LOG_INFO, "DiskPooling: PTR: %s\n\n", ptr1);
+    //    syslog(LOG_INFO, "DiskPooling: INSIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
        strcat(assocvol,"/dev/vg");
        strcat(assocvol,ptr1);
        strcat(assocvol,"/lv");
@@ -147,11 +148,11 @@ void initialize() {
 
        sprintf(sql1,"update Target set assocvol = '%s', mountpt = '%s', avspace = %lf where tid = %d", assocvol, mountpt, space_bytes, counter);
 
-       printf("SQL1 = %s\n", sql1);
+    //    syslog(LOG_INFO, "DiskPooling: SQL1 = %s\n", sql1);
        rc = sqlite3_exec(db,sql1,0,0,0);
 
        if (rc != SQLITE_OK){
-           printf("Did not insert successfully!");
+           syslog(LOG_INFO, "DiskPooling: Error: Target is not recorded");
            exit(0);
        }
 
@@ -160,7 +161,7 @@ void initialize() {
        strcpy(avspace,"");
        counter++;
        ptr1 = strtok(NULL,"\n");
-       printf("***************\n\n\n%s\n\n\n", ptr1);
+    //    printf("***************\n\n\n%s\n\n\n", ptr1);
     }
 
     printf("\n\nInitialization finished\n");

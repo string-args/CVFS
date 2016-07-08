@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <syslog.h>
 
 #include "../Global/global_definitions.h"
 #include "../disk_pooling/file_presentation.h"
@@ -12,6 +13,8 @@ int main()
 {
    pthread_t t[THREADCNT];
    int i;
+   // open logging
+   openlog("cvfs2", LOG_PID|LOG_CONS, LOG_USER);
 
    //initialize();
    while(1){

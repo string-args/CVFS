@@ -1,1 +1,1 @@
-void stripe(String filename);
+void stripe(String dirpath, String fullpath, String filename);

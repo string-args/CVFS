@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "../Global/global_definitions.h"
 #include "cmd_exec.h"
@@ -10,7 +11,7 @@ void runCommand(String comm, String out){
 
    fp = popen(comm, "r");
    if (fp == NULL){
-     printf("runCommand: error fp is NULL\n");
+     syslog(LOG_INFO, "Utilities: runCommand: error fp is NULL\n");
      exit(1);
    }
 
@@ -33,5 +34,3 @@ void writeFromCommand(String comm, String filePath){
 
    fclose(fp);
 }
-
-

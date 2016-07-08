@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <syslog.h>
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
 #include "../volume_management/make_volumes.h"
@@ -19,9 +20,10 @@ int main(int argc, char *argv[]) {
 		printf("FAILED");
 		exit(1);
 	}
-
+    openlog("cvfs2", LOG_PID|LOG_CONS, LOG_USER);
     String ipadd = "";
     strcpy(ipadd, argv[1]);
+    syslog(LOG_INFO, "add_target: Target with IP address %s will be added.\n", ipadd);
     printf("Target IP Address: %s\n", ipadd);
 
     String comm, out;
@@ -48,6 +50,7 @@ int main(int argc, char *argv[]) {
     system(comm);
 
     printf("\n\nAdding target finished :)\n");
+    syslog(LOG_INFO, "add_target: Adding target finished.\n");
     printf("SUCCESS");
     return 0;
 }

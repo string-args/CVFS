@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "../Global/global_definitions.h"
 #include "../volume_management/file_mapping.h"
@@ -17,7 +18,7 @@
 void stripe(String dirpath, String fullpath, String filename){
 
   FILE *file_to_open;
-  
+
   //size_t threshold = 536870912; /*124MB*/
   size_t bytes_read;
 
@@ -28,7 +29,7 @@ void stripe(String dirpath, String fullpath, String filename){
   //String full;
   String comm;
 
-  printf("File %s will be striped.\n", filename);
+  syslog(LOG_INFO, "FileStriping: File %s will be striped.\n", filename);
   //sprintf(full, "%s/%s", TEMP_LOC, fullpath);
   sprintf(comm, "rm '%s'", fullpath);
 
@@ -39,7 +40,7 @@ void stripe(String dirpath, String fullpath, String filename){
 
 
   if (file_to_open == NULL){
-    printf("fopen() unsuccessful!\n");
+    syslog(LOG_INFO, "FileStriping: fopen() unsuccessful!\n");
   }
 
   //String rootdir = "";
@@ -52,8 +53,8 @@ void stripe(String dirpath, String fullpath, String filename){
 
   String path;
   sprintf(path, "%s/%s", TEMP_LOC, dirpath);
-  
-  
+
+
   memmove(filename, filename+strlen(dirpath), 1 +strlen(filename+strlen(dirpath)));
 
   while ((bytes_read = fread(buffer, sizeof(char), STRIPE_SIZE, file_to_open)) > 0){

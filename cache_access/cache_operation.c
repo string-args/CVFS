@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
@@ -20,9 +21,9 @@ void incrementFrequency(String filename){
    int rc;
 
    String query;
-   printf("Increment frequency of file %s\n", filename);
-   //printf("Filename : %s :: Increment frequency by 1\n", filename);
-   //printf("incrementFrequency() :: Opening database %s\n", DBNAME);
+   syslog(LOG_INFO, "CacheAccess: Increment frequency of file %s\n", filename);
+   //syslog(LOG_INFO, "CacheAccess: Filename : %s :: Increment frequency by 1\n", filename);
+   //syslog(LOG_INFO, "CacheAccess: incrementFrequency() :: Opening database %s\n", DBNAME);
    rc = sqlite3_open(DBNAME, &db);
 
    if (rc != SQLITE_OK){
@@ -32,15 +33,15 @@ void incrementFrequency(String filename){
    }
 
    sprintf(query, "UPDATE CacheContent SET frequency = frequency + 1 WHERE filename = '%s';", filename);
-   //printf("incFreq: query = %s\n", query);
+   //syslog(LOG_INFO, "CacheAccess: incFreq: query = %s\n", query);
    rc = sqlite3_exec(db, query, 0, 0, &errmsg);
-    //printf("incFreq: rc = %d\n", rc);
+    //syslog(LOG_INFO, "CacheAccess: incFreq: rc = %d\n", rc);
    //sqlite3_finalize(res);
    if (rc != SQLITE_OK){
      fprintf(stderr, "SQL Error: %s\n", errmsg);
       sqlite3_free(errmsg);
    }
-   //printf("increment frequency is done\n");
+   //syslog(LOG_INFO, "CacheAccess: increment frequency is done\n");
    sqlite3_close(db);
 }
 
@@ -56,7 +57,7 @@ void update_cache_file_mountpt(String filename){
 
    sprintf(query, "SELECT fileloc from VolContent where filename = 'part1.%s';", filename);
 
-   //printf("Query := %s\n", query);
+   //syslog(LOG_INFO, "CacheAccess: Query := %s\n", query);
    //sprintf(query, "UPDATE CacheContent set mountpt = '%s' where filename = '%s';", fileloc);
    rc = sqlite3_open(DBNAME, &db);
    if(rc != SQLITE_OK){
@@ -75,18 +76,18 @@ void update_cache_file_mountpt(String filename){
    if (sqlite3_step(res) == SQLITE_ROW){
       sprintf(query1, "UPDATE CacheContent SET mountpt = '%s' WHERE filename = '%s';", sqlite3_column_text(res,0), filename);
 
-      printf("Filename :: %s : Mount Point : %s\n", filename, sqlite3_column_text(res,0));
+    //   syslog(LOG_INFO, "CacheAccess: Filename :: %s : Mount Point : %s\n", filename, sqlite3_column_text(res,0));
    }
    sqlite3_finalize(res);
 
-   //printf("Query1 := %s\n", query1);
+   //syslog(LOG_INFO, "CacheAccess: Query1 := %s\n", query1);
    rc = sqlite3_exec(db, query1, 0, 0, &errmsg);
    if (rc != SQLITE_OK){
       fprintf(stderr, "Update CacheContent Mountpt()... SQL Error: %s\n", errmsg);
       sqlite3_free(errmsg);
    }
    sqlite3_close(db);
-   //printf("Update Mountpt Success!\n");
+   //syslog(LOG_INFO, "CacheAccess: Update Mountpt Success!\n");
 }
 
 //update cache content table of the newly entered file
@@ -97,7 +98,7 @@ void update_cache_list(String filename){
 
    String query;
 
-   printf("Filename: %s :: Frequency 1\n", filename);
+   syslog(LOG_INFO, "CacheAccess: Filename: %s :: Frequency 1\n", filename);
 
    sprintf(query, "INSERT INTO CacheContent (filename, frequency) VALUES ('part1.%s', 1);", filename);
    rc = sqlite3_open(DBNAME, &db);
@@ -113,7 +114,7 @@ void update_cache_list(String filename){
       sqlite3_free(errmsg);
    }
    sqlite3_close(db);
-   //printf("Inserted Successfully!\n");
+   //syslog(LOG_INFO, "CacheAccess: Inserted Successfully!\n");
 }
 
 //this function checks if a file is in cache or not
@@ -159,13 +160,13 @@ void refreshCache(){
     const char *tail;
     int rc, i;
 
-    printf("Refreshing Cache...\n");
+    // syslog(LOG_INFO, "CacheAccess: Refreshing Cache...\n");
     String comm = "", comm_out = "", file_list = "", query;
     String contents[MAX_CACHE_SIZE];
 
     //get the files in CVFSCache folder
     sprintf(comm, "ls %s", CACHE_LOC);
-    //printf("Comm = %s\n", comm);
+    //syslog(LOG_INFO, "CacheAccess: Comm = %s\n", comm);
     runCommand(comm, comm_out);
     strcpy(file_list, comm_out);
 
@@ -177,11 +178,11 @@ void refreshCache(){
         }
    // if (strcmp(file_list,"") != 0)
    // {
-      //printf("Checking file_list...\n");
+      //syslog(LOG_INFO, "CacheAccess: Checking file_list...\n");
     //store the filenames in contents struct
     	char *pch = NULL;
     	pch = strtok(file_list, "\n");
-    	//printf("Printing Cache Contents:\n");
+    	//syslog(LOG_INFO, "CacheAccess: Printing Cache Contents:\n");
     	int j = 0;
         while (pch != NULL){
        		strcpy(contents[j], pch);
@@ -191,7 +192,7 @@ void refreshCache(){
     	}
    // }
     //opens database
-    //printf("RefreshCache(): Opening database %s\n", DBNAME);
+    //syslog(LOG_INFO, "CacheAccess: RefreshCache(): Opening database %s\n", DBNAME);
     rc = sqlite3_open(DBNAME, &db);
     if (rc != SQLITE_OK){
        fprintf(stderr, "Can't open database %s\n", sqlite3_errmsg(db));
@@ -200,7 +201,7 @@ void refreshCache(){
     }
 
     sprintf(query, "SELECT * FROM CacheContent ORDER BY frequency DESC LIMIT %d;", MAX_CACHE_SIZE);
-    //printf("Query := %s\n", query);
+    //syslog(LOG_INFO, "CacheAccess: Query := %s\n", query);
     rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
     if (rc != SQLITE_OK){
        fprintf(stderr, "SQL Error: %s\n", sqlite3_errmsg(db));
@@ -234,18 +235,18 @@ void refreshCache(){
     //sqlite3_close(db);
     String comm1 = "";
     //remove less frequent files
-    //printf("maxcahche size = %d\n", MAX_CACHE_SIZE);
+    //syslog(LOG_INFO, "CacheAccess: maxcahche size = %d\n", MAX_CACHE_SIZE);
     for (i = 0; i < MAX_CACHE_SIZE; i++){
-       //printf("i = %d :: contents = %s\n", i, contents[i]);
+       //syslog(LOG_INFO, "CacheAccess: i = %d :: contents = %s\n", i, contents[i]);
        if (strcmp(contents[i], "") != 0){
           strcpy(comm, "");
           sprintf(comm, "rm '%s/%s'", CACHE_LOC, contents[i]);
           sprintf(comm1, "rm '%s/%s'", SHARE_LOC, contents[i]);
-          //printf("comm = %s\n", comm);
+          //syslog(LOG_INFO, "CacheAccess: comm = %s\n", comm);
           system(comm);
-          printf("Removing %s in Cache...\n", contents[i]);
+          syslog(LOG_INFO, "CacheAccess: Removing %s in Cache...\n", contents[i]);
 	  system(comm1);
-	  printf("Removing %s in Share...\n", contents[i]);
+	  syslog(LOG_INFO, "CacheAccess: Removing %s in Share...\n", contents[i]);
           //update link cache here....
 
 	  String query1;

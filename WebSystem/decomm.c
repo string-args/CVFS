@@ -10,10 +10,11 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
-#define DBNAME	"Database/cvfs_db"	// for some reason this should be full path
+#define DBNAME2	"Database/cvfs_db"	// for some reason this should be full path
 
 static int callback(void *used, int argc, char **argv, char **colname) {
 	int i;
@@ -46,6 +47,9 @@ int main(int argc, char *argv[]) {
     int rc;
 	long occsp;
     sqlite3 *db;
+
+	openlog("cvfs2", LOG_PID|LOG_CONS, LOG_USER);
+
 	if(argc != 3){
 		printf("FATAL: Program takes exactly 2 arguments.\n");
 		printf("Usage:\n");
@@ -58,6 +62,7 @@ int main(int argc, char *argv[]) {
 	String iqn = "", query = "", comm = "", comm_out = "", dmount = "", query2 = "";
 	strcpy(iqn, argv[1]);
 	strcpy(dmount, argv[2]);	// mount point of leaving node
+	syslog(LOG_INFO, "decomm: Decommissioning of target %s mounted at %s\n", iqn, dmount);
 	printf("IQN = %s\n", iqn);
 	//sizex = <occupied space in x>
 	sprintf(comm, "du -s %s | awk '{print $1}'", argv[2]);
@@ -66,8 +71,8 @@ int main(int argc, char *argv[]) {
 	printf("occupied space in target %s = %ld\n", iqn, occsp);
 
 	// open database
-	printf("decomm: Opening database %s\n", DBNAME);
-	rc = sqlite3_open(DBNAME, &db);
+	printf("decomm: Opening database %s\n", DBNAME2);
+	rc = sqlite3_open(DBNAME2, &db);
 	if(rc) {
 		fprintf(stderr, "Can\'t open database %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
@@ -189,6 +194,7 @@ int main(int argc, char *argv[]) {
 
 	// close db
 	sqlite3_close(db);
+	syslog(LOG_INFO, "decomm: Decommissioning successful!");
 	printf("SUCCESS");
 
 	//deactivate volume here

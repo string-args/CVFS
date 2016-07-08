@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
+#include <syslog.h>
 
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
@@ -30,7 +31,7 @@ static int callback(void *notUsed, int argc, char **argv, char **colname){
 	} else {
 	    strcpy(usename, p);
 	}
-	//printf("usename = %s\n", usename);
+	//syslog(LOG_INFO, "DiskPooling: usename = %s\n", usename);
 
 	int exist = 0;
 	String ls = "", ls_out = "";
@@ -45,7 +46,7 @@ static int callback(void *notUsed, int argc, char **argv, char **colname){
 		ptr1 = strtok(NULL, "\n");
 	}
 	//strcpy(argv[0], usename);
-	//printf("exist = %d\n", exist);
+	//syslog(LOG_INFO, "DiskPooling: exist = %d\n", exist);
 	if (!exist){
       if (strstr(usename,"part1.") != NULL){
         // sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], usename, SHARE_LOC, usename);
@@ -54,28 +55,28 @@ static int callback(void *notUsed, int argc, char **argv, char **colname){
 		sprintf(sors, "'%s/%s'", argv[1], usename);
 		sprintf(dest, "'%s/%s'", SHARE_LOC, usename);
         if(symlink(sors, dest) == 0) {
-            printf("Link Created: '%s'\n", dest);
+            syslog(LOG_INFO, "DiskPooling: Link Created: '%s'\n", dest);
         } else {
             printf("!!! Error creating link %s", dest);;
         }
         // system(comm);
       } else if (strstr(usename, "part1.") == NULL){ //link linear files
         // sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], usename, SHARE_LOC, usename);
-        // printf("Link Created: '/mnt/Share/%s'\n", usename);
+        // syslog(LOG_INFO, "DiskPooling: Link Created: '/mnt/Share/%s'\n", usename);
         String sors = "", dest = "";
         sprintf(sors, "'%s/%s'", argv[1], usename);
 		sprintf(dest, "'%s/%s'", SHARE_LOC, usename);
         if(symlink(sors, dest) == 0) {
-            printf("Link Created: '%s'\n", dest);
+            syslog(LOG_INFO, "DiskPooling: Link Created: '%s'\n", dest);
         } else {
             printf("!!! Error creating link %s", dest);
         }
-        // printf("COMM = %s\n", comm);
+        // syslog(LOG_INFO, "DiskPooling: COMM = %s\n", comm);
     	// system(comm);
       } }
       //sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], argv[0], SHARE_LOC, argv[0]);
-      //printf("Link Created: '/mnt/Share/%s'\n", argv[0]);
-      //printf("comm = %s\n", comm);
+      //syslog(LOG_INFO, "DiskPooling: Link Created: '/mnt/Share/%s'\n", argv[0]);
+      //syslog(LOG_INFO, "DiskPooling: comm = %s\n", comm);
       //system(comm);
    }
    return 0;
@@ -103,7 +104,7 @@ void* create_link(){
 
    strcpy(file_list, "");
    strcpy(comm_out, "");
-   //printf("File Presentation:");
+   //syslog(LOG_INFO, "DiskPooling: File Presentation:");
    runCommand(comm, comm_out);
 
    char *ptr = strtok(comm_out, "\n");
@@ -119,11 +120,11 @@ void* create_link(){
    }
 
    //sprintf(file_list, "%s", comm_out);
-   //printf("File List: %s\n", file_list);
+   //syslog(LOG_INFO, "DiskPooling: File List: %s\n", file_list);
 
    sprintf(query, "SELECT filename, fileloc FROM VolContent WHERE filename NOT IN (%s);", file_list);
 
-   //printf("Query = %s\n", query);
+   //syslog(LOG_INFO, "DiskPooling: Query = %s\n", query);
 
 
    rc = sqlite3_exec(db, query, callback, 0, &err);
@@ -143,32 +144,32 @@ void create_link_cache(String filename){
     sprintf(sors, "'%s/part1.%s'", CACHE_LOC, filename);
     sprintf(dest, "'%s/part1.%s'", SHARE_LOC, filename);
     if(symlink(sors, dest) == 0) {
-        printf("Link Created: '%s'\n", dest);
+        syslog(LOG_INFO, "DiskPooling: Link Created: '%s'\n", dest);
     } else {
         printf("!!! Error creating link %s", dest);
     }
-   // printf("ln(dest) := %s\n", dest);
+   // syslog(LOG_INFO, "DiskPooling: ln(dest) := %s\n", dest);
    // system(ln);
-   printf("Created Link for file in Cache: %s\n" , filename);
+   //syslog(LOG_INFO, "DiskPooling: Created Link for file in Cache: %s\n" , filename);
 }
 
 void update_link_cache(String filename, String fileloc){
     String ln, rm;
 
     //sprintf(rm, "rm '/mnt/Share/%s'", filename);
-    //printf("Rm = %s\n", rm);
+    //syslog(LOG_INFO, "DiskPooling: Rm = %s\n", rm);
     //system(rm);
     // sprintf(ln, "ln -s '%s/%s' '%s/%s'", fileloc, filename, SHARE_LOC, filename);
-    //printf("LN = %s\n", ln);
+    //syslog(LOG_INFO, "DiskPooling: LN = %s\n", ln);
     // system(ln);
     String sors = "", dest = "";
 	sprintf(sors, "'%s/%s'", fileloc, filename);
 	sprintf(dest, "'%s/%s'", SHARE_LOC, filename);
     if(symlink(sors, dest) == 0) {
-        printf("Link Created: '%s'\n", dest);
+        syslog(LOG_INFO, "DiskPooling: Link Created: '%s'\n", dest);
     } else {
         printf("!!! Error creating link %s", dest);
     }
 
-    printf("Update Link for file: %s\n", filename);
+    //syslog(LOG_INFO, "DiskPooling: Update Link for file: %s\n", filename);
 }

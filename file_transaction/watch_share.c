@@ -6,6 +6,7 @@
 #include <sys/inotify.h>
 #include <limits.h>
 #include <sqlite3.h>
+#include <syslog.h>
 
 #include "../Global/global_definitions.h"
 #include "../volume_management/file_assembly.h"
@@ -35,7 +36,7 @@ void delete_linear_file(String filename){
 
     String query;
     sprintf(query, "SELECT fileloc FROM VolContent WHERE filename = '%s';", filename);
-    //printf("Query = %s\n", query);
+    //syslog(LOG_INFO, "FileTransaction: Query = %s\n", query);
     rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
     if (rc != SQLITE_OK){
       fprintf(stderr, "Delete Linear File() Error\n");
@@ -48,10 +49,10 @@ void delete_linear_file(String filename){
        sprintf(comm, "rm '%s/%s'", sqlite3_column_text(res,0), filename);
     }
     sqlite3_finalize(res);
-    //printf("Filename : %s || Fileloc : %s\n", filename, fileloc);
+    //syslog(LOG_INFO, "FileTransaction: Filename : %s || Fileloc : %s\n", filename, fileloc);
     update_target_size_delete(filename, fileloc);
     system(comm);
-    printf("File %s successfully deleted.\n", filename);
+    syslog(LOG_INFO, "FileTransaction: File %s successfully deleted.\n", filename);
 
     sprintf(query, "DELETE from VolContent where filename = '%s';", filename);
     rc = sqlite3_exec(db, query, 0, 0, 0);
@@ -97,7 +98,7 @@ void delete_stripe_file(String filename)
     if (inCache){
        sprintf(comm, "rm '%s/%s'", CACHE_LOC, filename);
        system(comm);
-       printf("File %s deleted from Cache.\n", filename);
+       syslog(LOG_INFO, "FileTransaction: File %s deleted from Cache.\n", filename);
     }
 
     //another code here: remove part1. in filename
@@ -136,7 +137,7 @@ void delete_stripe_file(String filename)
        //update_target_size_delete(file, fileloc);
 
        //sprintf(comm, "rm '%s/%s'", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
-       //printf("File %s has been successfully deleted.\n", sqlite3_column_text(res,0));
+       //syslog(LOG_INFO, "FileTransaction: File %s has been successfully deleted.\n", sqlite3_column_text(res,0));
        //system(comm);
 
        //delete entry from volcontent
@@ -150,7 +151,7 @@ void delete_stripe_file(String filename)
        //delete from cachecontent db: because only part1. have entry in table
        if (strstr(sqlite3_column_text(res,0), "part1.") != NULL){
           sprintf(query, "DELETE from CacheContent where filename = '%s';", sqlite3_column_text(res,0));
-          printf("CacheQuery = %s\n", query);
+        //   syslog(LOG_INFO, "FileTransaction: CacheQuery = %s\n", query);
           rc = sqlite3_exec(db, query, 0, 0, 0);
           if (rc != SQLITE_OK){
              fprintf(stderr, "Delete Stripe File Cache Entry() Error\n");
@@ -166,7 +167,7 @@ void delete_stripe_file(String filename)
        sprintf(comm, "rm '%s/%s'", fileloc_list[z], file_list[z]);
        update_target_size_delete(file_list[z], fileloc_list[z]);
        system(comm);
-       printf("File Part %s successfully deleted.\n", file_list[z]);
+       syslog(LOG_INFO, "FileTransaction: File Part %s successfully deleted.\n", file_list[z]);
     }
 
     rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
@@ -174,7 +175,7 @@ void delete_stripe_file(String filename)
 	sprintf(query, "DELETE from VolContent where filename = '%s';", sqlite3_column_text(res,0));
     	rc = sqlite3_exec(db, query, 0, 0, 0);
 	if (rc != SQLITE_OK){
-	    printf("Delete Stripe File() Error!\n");
+	    syslog(LOG_INFO, "FileTransaction: Delete Stripe File() Error!\n");
         }
     }
 
@@ -223,22 +224,22 @@ void *watch_share()
     while (sqlite3_step(res) == SQLITE_ROW){
        wd = inotify_add_watch(fd, sqlite3_column_text(res,0), IN_OPEN | IN_CLOSE_NOWRITE);
        if (wd == -1){
-          printf("Couldn't add watch to %s\n", sqlite3_column_text(res,0));
+          syslog(LOG_INFO, "FileTransaction: Couldn't add watch to %s\n", sqlite3_column_text(res,0));
        } else {
-          printf("Watching:: %s\n", sqlite3_column_text(res,0));
+          syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", sqlite3_column_text(res,0));
        }
     }
 
    wd = inotify_add_watch(fd, CACHE_LOC, IN_OPEN | IN_CLOSE_NOWRITE);
 
    if (wd != -1){
-    	printf("Watching:: %s\n", CACHE_LOC);
+    	syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", CACHE_LOC);
    }
 
    wd = inotify_add_watch(fd, SHARE_LOC, IN_DELETE | IN_CREATE | IN_MODIFY);
 
    if (wd != -1){
-	printf("Watching:: %s\n", SHARE_LOC);
+	syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", SHARE_LOC);
    }
 
     /*do it forever*/
@@ -253,7 +254,7 @@ void *watch_share()
      for(p = buffer; p < buffer + length;){
            struct inotify_event *event = (struct inotify_event *) p;
 
-           //printf("AAA* event is %d\n", event->mask);
+           //syslog(LOG_INFO, "FileTransaction: AAA* event is %d\n", event->mask);
          //if (event->len){
 	     if (event->mask & IN_CREATE){
 	   	  if (event->mask & IN_ISDIR){
@@ -267,13 +268,13 @@ void *watch_share()
 		  if (event->mask & IN_ISDIR){
 			//do nothing
 		  } else {
-		     printf("File %s was modified.\n", event->name);
+		     syslog(LOG_INFO, "FileTransaction: File %s was modified.\n", event->name);
 		  }
 	     }
 
               if (event->mask & IN_OPEN){
                   if (event->mask & IN_ISDIR){
-                      //printf("The directory %s was opened.\n", event->name);
+                      //syslog(LOG_INFO, "FileTransaction: The directory %s was opened.\n", event->name);
                   }else {
                       //only recognize if part1 of the file is opened
                       //check if its cache or not
@@ -307,9 +308,9 @@ void *watch_share()
 
               if (event->mask & IN_DELETE){
                   if (event->mask & IN_ISDIR){
-		             //printf("The directory %s will be deleted.\n", event->name);
+		             //syslog(LOG_INFO, "FileTransaction: The directory %s will be deleted.\n", event->name);
 	          }else{
-		             printf("The file %s will be deleted.\n", event->name);
+		             syslog(LOG_INFO, "FileTransaction: The file %s will be deleted.\n", event->name);
                      	     if (strstr(event->name, "part1.") != NULL){
                          	delete_stripe_file(event->name);
                      	     } else {
@@ -320,9 +321,9 @@ void *watch_share()
 
               if (event->mask & IN_CLOSE_NOWRITE){
                   if (event->mask & IN_ISDIR){
-                      //printf("The directory %s not open for writing was closed.\n", event->name);
+                      //syslog(LOG_INFO, "FileTransaction: The directory %s not open for writing was closed.\n", event->name);
                   }else{
-                      printf("The file %s was closed.\n", event->name);
+                      syslog(LOG_INFO, "FileTransaction: The file %s was closed.\n", event->name);
                   if (strstr(event->name, "part1.") != NULL){
                            refreshCache();
                       }
