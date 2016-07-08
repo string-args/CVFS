@@ -13,7 +13,7 @@
 
 #include "../Global/global_definitions.h"
 #include "../Utilities/cmd_exec.h"
-#define DBNAME	"/home/cvfs-initiator/Desktop/updated_repo/Database/cvfs_db"	// for some reason this should be full path
+#define DBNAME	"Database/cvfs_db"	// for some reason this should be full path
 
 static int callback(void *used, int argc, char **argv, char **colname) {
 	int i;
@@ -46,7 +46,6 @@ int main(int argc, char *argv[]) {
     int rc;
 	long occsp;
     sqlite3 *db;
-
 	if(argc != 3){
 		printf("FATAL: Program takes exactly 2 arguments.\n");
 		printf("Usage:\n");

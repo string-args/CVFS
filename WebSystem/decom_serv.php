@@ -6,12 +6,14 @@
 */
 $config = 'cvfsweb.conf';
 $cvfs_dir = file_get_contents($config);
+//echo "cvfs_dir = " . $cvfs_dir;
+chdir(trim($cvfs_dir));
 // name and path of decommissioning program
-$PROGNAME = trim($cvfs_dir) . '/decomm';
+$PROGNAME = './decomm';
 $ok = 'SUCCESS';
 list($iqn, $mountpt) = explode('|', $_POST['node']);
 // execute decommissioning program
-$comm = $PROGNAME . ' ' . $iqn . ' ' . $mountpt . ' 2>&1';
+$comm = 'sudo ' . $PROGNAME . ' ' . $iqn . ' ' . $mountpt . ' 2>&1';
 echo "comm = " . $comm;
 $status = exec($comm, $pout);
 // we can print blah blah here, but we can really just redirect to fail / success page
