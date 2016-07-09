@@ -50,18 +50,19 @@ int main(int argc, char *argv[]) {
 
 	openlog("cvfs2", LOG_PID|LOG_CONS, LOG_USER);
 
-	if(argc != 3){
-		printf("FATAL: Program takes exactly 2 arguments.\n");
+	if(argc != 4){
+		printf("FATAL: Program takes exactly 3 arguments.\n");
 		printf("Usage:\n");
-		printf("\tdecomm <IQN> <mount point>\n");	// this is to limit db queries
+		printf("\tdecomm <IQN> <mount point> <vg_name>\n");	// this is to limit db queries
 		printf("FAILED2");
 		exit(1);
 	}
 
 	// at this point, we assume that the IQN is valid
-	String iqn = "", query = "", comm = "", comm_out = "", dmount = "", query2 = "";
+	String iqn = "", query = "", lvname = "", comm = "", comm_out = "", dmount = "", query2 = "";
 	strcpy(iqn, argv[1]);
 	strcpy(dmount, argv[2]);	// mount point of leaving node
+	strcpy(lvname, argv[3]); 	//logical volume group name
 	syslog(LOG_INFO, "decomm: Decommissioning of target %s mounted at %s\n", iqn, dmount);
 	printf("IQN = %s\n", iqn);
 	//sizex = <occupied space in x>
@@ -191,6 +192,39 @@ int main(int argc, char *argv[]) {
     sqlite3_finalize(res);
 	// yehey tapos na?
 
+	//unmount
+   	String umount = "";
+   	sprintf(umount, "umount '%s'", dmount);
+   	system(umount);
+   	
+   	//remove folder
+   	String rm = "";
+   	sprintf(rm, "rmdir '%s'", dmount);
+   	system(rm);
+   	
+   	//remove logical volume
+   	String lvremove = "";
+   	sprintf(lvremove, "lvremove '%s'", lvname);
+  	system(lvremove);
+  
+  	//remove volume group
+  	String vgremove = "", vgname = "";
+  	char *pch = NULL;
+  	int counter = 0;
+  	pch = strtok(lvname, "/");
+  	while (pch != NULL){
+  		strcat(vgname, "/");
+  		strcat(vgname, pch);
+  		counter++;
+  		pch = strtok(NULL, "/");
+  		if (counter == 2)
+  			break;
+  	}
+  	sprintf(vgremove, "vgremove -a n '%s'", vgname);
+  	printf("vgremove = %s\n", vgremove);
+  	system(vgremove);
+  	
+  
 
 	// close db
 	sqlite3_close(db);
@@ -198,6 +232,8 @@ int main(int argc, char *argv[]) {
 	printf("SUCCESS");
 
 	//deactivate volume here
+       
+
 
 	return 0;
 }
