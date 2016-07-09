@@ -8,7 +8,7 @@ MAIN = cvfs_driver
 all: $(MAIN) add_target decomm
 
 $(MAIN): file_transaction/cvfs_driver.c cache_operation.o file_presentation.o initial_configurations.o file_striping.o file_mapping.o file_assembly.o make_volumes.o cmd_exec.o watch_dir.o watch_share.o
-	$(CC) file_transaction/cvfs_driver.c cache_operation.o file_presentation.o initial_configurations.o file_striping.o file_mapping.o file_assembly.o make_volumes.o cmd_exec.o watch_dir.o watch_share.o $(LIBS) -o $(MAIN)
+	$(CC) file_transaction/cvfs_driver.c cache_operation.o file_presentation.o initial_configurations.o file_striping.o file_mapping.o file_assembly.o make_volumes.o cmd_exec.o watch_dir.o watch_share.o $(LIBS) -o file_transaction/$(MAIN)
 
 cache_operation.o: cache_access/cache_operation.c
 	$(CC) -c cache_access/cache_operation.c
