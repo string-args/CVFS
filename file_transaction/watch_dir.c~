@@ -55,14 +55,32 @@ void make_folder(String root){
 		String mkdir;
 		sprintf(mkdir, "mkdir '%s/%s'", sqlite3_column_text(res,0), root);
 		//syslog(LOG_INFO, "FileTransaction: MKDIR = %s\n", mkdir);
-		//printf("MKDIR := %s\n", mkdir);
+		printf("MKDIR := %s\n", mkdir);
 		system(mkdir);
 
 		String chmod;
 		sprintf(chmod, "chmod -R 777 '%s/%s'", sqlite3_column_text(res,0), root);
-		//printf("CHMOD := %s\n", chmod);
+		printf("CHMOD := %s\n", chmod);
 		system(chmod);
 
+/*	    if (strcmp(sqlite3_column_text(res,0), "/mnt/lvsdb") == 0){
+		// syslog(LOG_INFO, "FileTransaction: ROOT: %s\n", root);
+
+		// String ln = "";
+		// sprintf(ln, "ln -s '%s/%s' '%s/%s'", sqlite3_column_text(res,0), root, SHARE_LOC, root);
+
+		String sors = "", dest = "";
+		sprintf(sors, "%s/%s", sqlite3_column_text(res,0), root);
+		sprintf(dest, "%s/%s", SHARE_LOC, root);
+		if(symlink(sors, dest) == 0) {
+            		syslog(LOG_INFO, "FileTransaction: Link Created: '%s'\n", dest);
+        	} else {
+
+	//printf("!!! Error creating link %s\n", dest);
+        	}
+	// syslog(LOG_INFO, "FileTransaction: LN(dest) = %s\n", dest);
+		//system(ln);
+	    }*/
 
 	}
 	//counter = 0;
@@ -154,38 +172,45 @@ void* watch_temp()
 		     String mkdir = "", rm = "", ln = "";
 
 		     if (wd == 1){
+		        //sprintf(rm, "rm -rf '%s/%s'", SHARE_LOC, event->name);
+			//system(rm);
+			//sprintf(mkdir, "cp '%s/%s' '%s/%s'", TEMP_LOC, event->name, SHARE_LOC, event->name);
+			//syslog(LOG_INFO, "FileTransaction: CP: %s\n", mkdir);
+			//system(mkdir);
 			String mkdir = "";
 			sprintf(mkdir, "mkdir '/mnt/shit/%s'", event->name);
 			system(mkdir);
+			//system("ls -l /mnt/shit/");
+			//system("ls -l /mnt/Share/");
 			String chmod = "";
 			sprintf(chmod, "chmod -R 777 '/mnt/shit/%s'", event->name);
 			system(chmod);
+			//make_folder(event->name);
 			String ln = "";
 			sprintf(ln, "ln  -s '/mnt/shit/%s' '%s/%s'", event->name, SHARE_LOC, event->name);
-			//printf("ln := %s\n", ln);
+			printf("ln := %s\n", ln);
 			system(ln);
 
+			//system("ls -l /mnt/shit/");
+			//system("ls -l /mnt/Share/");
+			
 			make_folder(event->name);
 
 		
 		     }else{
-
 			String x;
 			sprintf(x, "%s%s", root, event->name);
-
-			String mkdir = "";
-			sprintf(mkdir, "mkdir '/mnt/shit/%s'", x);
-			system(mkdir);
-			String chmod = "";
-			sprintf(chmod, "chmod -R 777 '/mnt/shit/%s'", x);
-			system(chmod);
-			String ln = "";
-			sprintf(ln, "ln  -s '/mnt/shit/%s' '%s/%s'", x, SHARE_LOC, x);
-			//printf("ln := %s\n", ln);
-			system(ln);
-
-
+			//String cp = "";
+			//sprintf(cp, "cp -r '%s/%s' '%s/%s'", TEMP_LOC, root, SHARE_LOC, root);
+			//system(cp);
+			//sprintf(rm, "rm -rf '%s/%s'", SHARE_LOC, x);
+			//system(rm);
+			//sprintf(mkdir, "cp '%s/%s' '%s/%s'", TEMP_LOC, x, SHARE_LOC, x);
+			//syslog(LOG_INFO, "FileTransaction: CP :'%s'\n", mkdir);
+			//system(mkdir);
 			make_folder(x);
+			//sprintf(mkdir, "mkdir -p '%s/%s'", SHARE_LOC, x);
+			//system(mkdir);
 		     }
 
 
@@ -199,7 +224,6 @@ void* watch_temp()
 
 		     //syslog(LOG_INFO, "FileTransaction: Root Directory: %s%s\n", root, event->name);
                      sprintf(dir_to_watch,"%s/%s%s", TEMP_LOC, root, event->name);
-		     printf("DIR_TO_WATCH := %s\n", dir_to_watch);
 		     wd = inotify_add_watch(fd, dir_to_watch, IN_ALL_EVENTS);
                      wds[counter] = wd;
                      strcpy(dirs[counter], event->name);
@@ -207,9 +231,9 @@ void* watch_temp()
 		}
               }
 
-              if (event->mask & IN_CLOSE){
-		//if (event->mask & IN_ISDIR){
-		//} else {
+              if (event->mask & IN_CLOSE_WRITE){
+		if (event->mask & IN_ISDIR){
+		} else {
 		     String root = "";
 		     String arr[MAXDEPTH];
 		     int d;
@@ -258,7 +282,7 @@ void* watch_temp()
                         }
 
                   }
-              }
+              }}
 
               if (event->mask & IN_MOVED_TO){
                   if (event->mask & IN_ISDIR)

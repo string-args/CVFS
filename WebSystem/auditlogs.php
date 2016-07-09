@@ -3,7 +3,7 @@
 <body>
 <?php
 
-$comm = "cat /var/log/samba-audit.log";
+$comm = "sudo cat /var/log/samba-audit.log";
 $status = exec($comm, $pout);
 
 foreach($pout as $l){

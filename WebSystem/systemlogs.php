@@ -3,7 +3,7 @@
 <body>
 <?php
 
-$comm = "cat /var/log/syslog | grep cvfs2";
+$comm = "sudo cat /var/log/syslog | grep cvfs2";
 $status = exec($comm, $pout);
 
 foreach($pout as $l){

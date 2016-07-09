@@ -19,7 +19,7 @@ static int callback(void *notUsed, int argc, char **argv, char **colname){
    } else {
       //link only the part1
 
-
+/*
 
 	String filename = "";
 	String usename = "";
@@ -77,7 +77,7 @@ static int callback(void *notUsed, int argc, char **argv, char **colname){
       //sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], argv[0], SHARE_LOC, argv[0]);
       //syslog(LOG_INFO, "DiskPooling: Link Created: '/mnt/Share/%s'\n", argv[0]);
       //syslog(LOG_INFO, "DiskPooling: comm = %s\n", comm);
-      //system(comm);
+      //system(comm);*/
    }
    return 0;
 }
