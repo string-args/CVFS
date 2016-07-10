@@ -72,7 +72,7 @@ void assemble_cache_file(String filename){
    sprintf(put_cache, "mv '%s%s' '%s/%s'", ASSEMBLY_LOC, assfile, CACHE_LOC, assfile);
    //syslog(LOG_INFO, "VolumeManagement: MV = %s\n", put_cache);
    system(put_cache);
-   printf("%s was put in cache.\n", assfile);
+   syslog(LOG_INFO, "VolumeManagement: %s was put in cache.\n", assfile);
 }
 
 void assemble(String filename){
@@ -158,8 +158,8 @@ void assemble(String filename){
       sprintf(cp, "cp '%s/%s' '%s%s'", sqlite3_column_text(res,0), tempname, STORAGE_LOC, tempname);
       //move assembled file
       sprintf(mv, "mv '%s%s' '%s/%s'", ASSEMBLY_LOC, tempname, sqlite3_column_text(res,0), tempname);
-      printf("\nCP = %s\n", cp);
-      printf("\nMV = %s\n", mv);
+    //   printf("\nCP = %s\n", cp);
+    //   printf("\nMV = %s\n", mv);
       system(cp);
       system(mv);
    }

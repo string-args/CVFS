@@ -197,8 +197,8 @@ void list_dir(String dir_to_read, int fd, int wds[], String dirs[], int counter)
     DIR *dr = opendir(dir_to_read);
 
     if (dr == NULL){
-	printf("Could not open current directory");
-    }     
+	syslog(LOG_INFO, "FileTransaction: Could not open current directory");
+    }
 
     while ((de = readdir(dr)) != NULL){
 	struct stat s;
@@ -211,7 +211,7 @@ void list_dir(String dir_to_read, int fd, int wds[], String dirs[], int counter)
 			wds[counter] = wd;
 			strcpy(dirs[counter], subdir);
 			counter++;
-			printf("Watching:: %s\n", subdir);
+			syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", subdir);
 			list_dir(subdir,fd, wds, dirs, counter);
 		}
 	}
@@ -313,9 +313,9 @@ void *watch_share()
 	   	  if (event->mask & IN_ISDIR){
 		      //check if folder is created by make_folder() in write part
 		      //in targets
-                      int size = sizeof(wds) / sizeof(wds[0]); 
+                      int size = sizeof(wds) / sizeof(wds[0]);
 		      int i = 0;
-		
+
       		      for (i = 0; i < size; i++){
      			   if (wds[i] == event->wd){
 				if (strstr(dirs[i], "/mnt/Share") == NULL){
@@ -331,7 +331,7 @@ void *watch_share()
 			   }
 		      }
 
-		      printf("Directory %s created.\n", event->name);
+		      syslog(LOG_INFO, "FileTransaction: Directory %s created.\n", event->name);
 		  } else {
 		      //file_map_share(event->name);
 		  }
@@ -352,7 +352,7 @@ void *watch_share()
                       //only recognize if part1 of the file is opened
                       //check if its cache or not
                       //if its not, assemble the file
-                      printf("%s was opened.\n", event->name);
+                      syslog(LOG_INFO, "FileTransaction: %s was opened.\n", event->name);
                       //incrementFrequency(event->name);
                       if (strstr(event->name,"part1.") != NULL){
 
@@ -404,7 +404,7 @@ void *watch_share()
               }
 
 	      if (event->mask & IN_MOVED_TO){
-		printf("IN_MOVED_TO := %s\n", event->name);
+		syslog(LOG_INFO, "FileTransaction: IN_MOVED_TO := %s\n", event->name);
 	      }
 
               p += EVENT_SIZE + event->len;

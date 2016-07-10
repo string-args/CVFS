@@ -215,9 +215,9 @@ void refreshCache(){
 	   String filename = "";
            strcpy(filename, sqlite3_column_text(res,0));
            if (inCache(contents, filename)){
-              printf("%s is already in cache.\n", filename);
+              syslog(LOG_INFO, "CacheAccess: %s is already in cache.\n", filename);
            } else{
-              printf("%s not in cache, transfering...\n", filename);
+              syslog(LOG_INFO, "CacheAccess: %s not in cache, transfering...\n", filename);
               assemble_cache_file(filename);
               String rm;
 	      sprintf(rm, "rm '%s/part1.%s'", SHARE_LOC, filename);
