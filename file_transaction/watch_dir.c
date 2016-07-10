@@ -57,12 +57,12 @@ void make_folder(String root){
 	//int counter = 0;
 	while (sqlite3_step(res) == SQLITE_ROW){
 		String mkdir;
-		sprintf(mkdir, "mkdir '%s/%s'", sqlite3_column_text(res,0), root);
+		sprintf(mkdir, "mkdir '%s/%s/'", sqlite3_column_text(res,0), root);
 		//printf("MKDIR = %s\n", mkdir);
 		system(mkdir);
 
 		String chmod;
-		sprintf(chmod, "chmod -R 777 '%s/%s'", sqlite3_column_text(res,0), root);
+		sprintf(chmod, "chmod -R 777 '%s/%s/'", sqlite3_column_text(res,0), root);
 		system(chmod);
 	}
 	//counter = 0;
@@ -82,7 +82,7 @@ void get_root(int wds[], int trigger[] , String dirs[], int counter, int wd, Str
     //return arr;
 }
 
-int main()
+void *watch_temp()
 
 {
     int length, i = 0, wd;
@@ -144,7 +144,8 @@ int main()
 			    strcat(root, arr[d]);
 			    strcat(root, "/");
 			}
-		     }		     
+		     }	
+	     
 		     String x;
 		     sprintf(x, "%s%s", root, event->name);
 	     
@@ -155,20 +156,21 @@ int main()
 		     wds[counter] = wd;
 		     trigger[counter] = event->wd;
                      strcpy(dirs[counter], event->name);
-
+		
+			
+		    
 		/***************CREATES in /mnt/CVFSFSTorage AND LINK DIRECTORY to SHare *********/
-		     String mkdir = "", chmod = "",  sors = "", dest = "";
-		     sprintf(mkdir, "mkdir '%s/%s'", SHIT_STORAGE, event->name);
-		     system(mkdir);
-
-                     sprintf(chmod, "chmod 777 -R '%s/%s'", SHIT_STORAGE, event->name);
-		     system(chmod);
-
+		     String dir = "", chmod = "",  sors = "", dest = "";
+		     sprintf(dir, "mkdir '%s/%s'", SHIT_STORAGE, event->name);
+		     system(dir);
+		     
+                    sprintf(chmod, "chmod 777 -R '%s/%s'", SHIT_STORAGE, event->name);
+		    system(chmod);
+		
 		     sprintf(sors, "%s/%s", SHIT_STORAGE, event->name);
 		     sprintf(dest, "%s/%s", SHARE_LOC, x);
 		     symlink(sors,dest);
-	         /******************************************************************************/
-
+	         /******************************************************************************/ 
 		     make_folder(x);
 		     counter++;
 		}
@@ -200,7 +202,7 @@ int main()
 		      sprintf(filename, "%s%s", root, event->name);
                       FILE *fp;
                       sprintf(filepath, "%s/%s%s", TEMP_LOC, root, event->name);
-		      printf("FILEPATH := %s\n", filepath);
+		      //printf("FILEPATH := %s\n", filepath);
 		      //printf("hahahaa: filepath:%s\n\tfilename:%s", filepath, filename);
                       fp = fopen(filepath, "rb");
                       if (fp != NULL){
