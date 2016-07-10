@@ -31,25 +31,6 @@
 
 #define MAX_WTD 69 //Assuming all max watches are only 69
 
-void add_monitor_directory(String root, String event_name, int fd, int wds[], String dirs[], int counter){
-	String dir_to_watch = "";
-	int wd;
-	
-	sprintf(dir_to_watch, "%s/%s%s", TEMP_LOC, root, event_name);
-
-
-	printf("DIR_TO_WATCH := %s\n", dir_to_watch);
-
-	//fd = inotify_init();
-	wd = inotify_add_watch(fd, dir_to_watch, IN_ALL_EVENTS);
-        if (wd == -1){
-	    printf("Can't watch directory : %s\n", dir_to_watch);
-        }
-
-	wds[counter] = wd;
-	strcpy(dirs[counter], event_name);
-}
-
 void make_folder(String root){
 	sqlite3 *db;
 	sqlite3_stmt *res;
@@ -108,9 +89,9 @@ int main()
     int fd;
     char buffer[BUF_LEN];
     
-    int wds[MAX_WTD];
-    int trigger[MAX_WTD];
-    String dirs[MAX_WTD];
+    int wds[MAX_WTD];	//for the wds
+    int trigger[MAX_WTD];	//for the event->wd that trigger the current wds
+    String dirs[MAX_WTD];	//for the directory names that is trigger by the wds
     int counter = 1;
 
     /*Initialize inotify*/
