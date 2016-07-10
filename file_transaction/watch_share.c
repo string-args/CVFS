@@ -7,6 +7,9 @@
 #include <limits.h>
 #include <sqlite3.h>
 #include <syslog.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <dirent.h>
 
 #include "../Global/global_definitions.h"
 #include "../volume_management/file_assembly.h"
@@ -18,6 +21,8 @@
 #define LEN_NAME 32 /*Assuming that the length of filename won't exceed 16 bytes*/
 #define EVENT_SIZE ( sizeof (struct inotify_event) ) /*size of one event*/
 #define BUF_LEN  ( MAX_EVENTS * ( EVENT_SIZE + LEN_NAME )) /*buffer to store the data of events*/
+
+#define MAX_WTD 200 //max is 200 watches, assumed
 
 void delete_linear_file(String filename){
     sqlite3 *db;
@@ -183,6 +188,37 @@ void delete_stripe_file(String filename)
     sqlite3_close(db);
 }
 
+
+//THIS FUNCTION ADD A WATCH TO ALL DIRECTORIES AND SUBDIRECTORIES
+//THAT ARE ALREADY WRITTEN
+void list_dir(String dir_to_read, int fd, int wds[], String dirs[], int counter){
+    struct dirent *de;
+
+    DIR *dr = opendir(dir_to_read);
+
+    if (dr == NULL){
+	printf("Could not open current directory");
+    }     
+
+    while ((de = readdir(dr)) != NULL){
+	struct stat s;
+	String subdir = "";
+	sprintf(subdir, "%s/%s", dir_to_read, de->d_name);
+	stat(subdir, &s);
+	if (S_ISDIR(s.st_mode)){
+		if (strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0) {
+			int wd = inotify_add_watch(fd, subdir, IN_ALL_EVENTS);
+			wds[counter] = wd;
+			strcpy(dirs[counter], subdir);
+			counter++;
+			printf("Watching:: %s\n", subdir);
+			list_dir(subdir,fd, wds, dirs, counter);
+		}
+	}
+    }
+    closedir(dr);
+}
+
 void *watch_share()
 {
     int length, i = 0, wd;
@@ -192,6 +228,10 @@ void *watch_share()
     int r_count = 1;
     char *p;
     char buffer[BUF_LEN] __attribute__ ((aligned(8)));
+    int counter = 0;
+    int wds[MAX_WTD];
+    String dirs[MAX_WTD];
+
 
     String query;
 
@@ -223,21 +263,34 @@ void *watch_share()
 
     while (sqlite3_step(res) == SQLITE_ROW){
        wd = inotify_add_watch(fd, sqlite3_column_text(res,0), IN_OPEN | IN_CLOSE_NOWRITE);
+       wds[counter] = wd;
+       strcpy(dirs[counter], sqlite3_column_text(res,0));
+       counter++;
        if (wd == -1){
           syslog(LOG_INFO, "FileTransaction: Couldn't add watch to %s\n", sqlite3_column_text(res,0));
        } else {
           syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", sqlite3_column_text(res,0));
        }
+
+       //Check each target for directory
+       String dir_to_read = "";
+       strcpy(dir_to_read, sqlite3_column_text(res,0));
+       list_dir(dir_to_read, fd, wds, dirs, counter);
+
     }
 
-   wd = inotify_add_watch(fd, CACHE_LOC, IN_OPEN | IN_CLOSE_NOWRITE);
-
+   wd = inotify_add_watch(fd, CACHE_LOC, IN_ALL_EVENTS);
+   wds[counter] = wd;
+   strcpy(dirs[counter], CACHE_LOC);
+   counter++;
    if (wd != -1){
     	syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", CACHE_LOC);
    }
 
-   wd = inotify_add_watch(fd, SHARE_LOC, IN_DELETE | IN_CREATE | IN_MODIFY);
-
+   wd = inotify_add_watch(fd, SHARE_LOC, IN_ALL_EVENTS);
+   wds[counter] = wd;
+   strcpy(dirs[counter], SHARE_LOC);
+   counter++;
    if (wd != -1){
 	syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", SHARE_LOC);
    }
@@ -258,9 +311,29 @@ void *watch_share()
          //if (event->len){
 	     if (event->mask & IN_CREATE){
 	   	  if (event->mask & IN_ISDIR){
-		      //do nothing
+		      //check if folder is created by make_folder() in write part
+		      //in targets
+                      int size = sizeof(wds) / sizeof(wds[0]); 
+		      int i = 0;
+		
+      		      for (i = 0; i < size; i++){
+     			   if (wds[i] == event->wd){
+				if (strstr(dirs[i], "/mnt/Share") == NULL){
+				//this means that the folder that trigger the event is a target
+				   String add_watch_dir = "";
+				   sprintf(add_watch_dir, "%s/%s", dirs[i], event->name);
+				   //add to inotify watch
+				   int wd = inotify_add_watch(fd, add_watch_dir, IN_ALL_EVENTS);
+				   wds[counter] = wd;
+				   strcpy(dirs[counter], add_watch_dir);
+				   counter++;
+			        }
+			   }
+		      }
+
+		      printf("Directory %s created.\n", event->name);
 		  } else {
-		      file_map_share(event->name);
+		      //file_map_share(event->name);
 		  }
 	     }
 
@@ -319,16 +392,20 @@ void *watch_share()
                   }
               }
 
-              if (event->mask & IN_CLOSE_NOWRITE){
+              if (event->mask & IN_CLOSE){
                   if (event->mask & IN_ISDIR){
                       //syslog(LOG_INFO, "FileTransaction: The directory %s not open for writing was closed.\n", event->name);
                   }else{
                       syslog(LOG_INFO, "FileTransaction: The file %s was closed.\n", event->name);
                   if (strstr(event->name, "part1.") != NULL){
-                           refreshCache();
+                           //refreshCache();
                       }
                   }
               }
+
+	      if (event->mask & IN_MOVED_TO){
+		printf("IN_MOVED_TO := %s\n", event->name);
+	      }
 
               p += EVENT_SIZE + event->len;
            //}
