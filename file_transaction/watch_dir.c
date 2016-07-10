@@ -82,7 +82,7 @@ void get_root(int wds[], int trigger[] , String dirs[], int counter, int wd, Str
     //return arr;
 }
 
-int main()
+void *watch_temp()
 
 {
     int length, i = 0, wd;
