@@ -108,7 +108,8 @@ void *watch_temp()
     if (wd == -1){
         syslog(LOG_INFO, "FileTransaction: Couldn't add watch to %s\n", TEMP_LOC);
     } else {
-        syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", TEMP_LOC);
+        syslog(LOG_INFO, "FileTransaction: WRITE :: Watching:: %s\n", TEMP_LOC);
+
     }
 
     /*do it forever*/
@@ -128,7 +129,7 @@ void *watch_temp()
 
 	      if (event->mask & IN_CREATE){
 		if (event->mask & IN_ISDIR){
-		     printf("%s is created.\n", event->name);
+		     //printf("%s is created.\n", event->name);
 		     String dir_to_watch = "";
 		     String root = "";
 		     String arr[MAXDEPTH];
@@ -153,7 +154,13 @@ void *watch_temp()
                      sprintf(dir_to_watch,"%s/%s%s/", TEMP_LOC, root, event->name);
 		     wd = inotify_add_watch(fd, dir_to_watch, IN_ALL_EVENTS);
 
-		    //  syslog(LOG_INFO, "FileTransaction: DIR_TO_WATCH := %s\n", dir_to_watch);
+                     if (wd == -1){
+
+		     } else {
+			syslog(LOG_INFO, "FileTransaction: WRITE := Watching := %s\n", dir_to_watch);
+		     }
+		     //printf("DIR_TO_WATCH := %s\n", dir_to_watch);
+
 		     wds[counter] = wd;
 		     trigger[counter] = event->wd;
                      strcpy(dirs[counter], event->name);
@@ -227,7 +234,9 @@ void *watch_temp()
 			*/
 			   stripe(root, filepath, filename);
                         } else {
-			   syslog(LOG_INFO, "FileTransaction: Transferring %s to targets...\n", filename);
+
+			//    syslog(LOG_INFO, "FileTransaction: Transferring %s to targets...\n", filename);
+
                            file_map(filepath, filename);
                         }
 		    }
@@ -235,10 +244,11 @@ void *watch_temp()
               }
 
               if (event->mask & IN_MOVED_TO){
-                 if (event->mask & IN_ISDIR)
-                      syslog(LOG_INFO, "FileTransaction: The directory %s is transferring.\n", event->name);
-                  else
-                      syslog(LOG_INFO, "FileTransaction: The file %s is transferring.\n", event->name);
+
+                 if (event->mask & IN_ISDIR){}
+                      //printf("The directory %s is transferring.\n", event->name);
+                  else{}
+                      //printf("The file %s is transferring.\n", event->name);
               }
 
               i += EVENT_SIZE + event->len;

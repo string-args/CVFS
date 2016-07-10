@@ -211,7 +211,11 @@ void list_dir(String dir_to_read, int fd, int wds[], String dirs[], int counter)
 			wds[counter] = wd;
 			strcpy(dirs[counter], subdir);
 			counter++;
-			syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", subdir);
+
+			if (wd == -1){
+			}else{
+				syslog(LOG_INFO, "FileTransaction: READ := Watching:: %s\n", subdir);
+			}
 			list_dir(subdir,fd, wds, dirs, counter);
 		}
 	}
@@ -262,7 +266,7 @@ void *watch_share()
     }
 
     while (sqlite3_step(res) == SQLITE_ROW){
-       wd = inotify_add_watch(fd, sqlite3_column_text(res,0), IN_OPEN | IN_CLOSE_NOWRITE);
+       wd = inotify_add_watch(fd, sqlite3_column_text(res,0), IN_ALL_EVENTS);
        wds[counter] = wd;
        strcpy(dirs[counter], sqlite3_column_text(res,0));
        counter++;
@@ -313,25 +317,39 @@ void *watch_share()
 	   	  if (event->mask & IN_ISDIR){
 		      //check if folder is created by make_folder() in write part
 		      //in targets
+
+		      //printf("Directory %s created.\n", event->name);
                       int size = sizeof(wds) / sizeof(wds[0]);
 		      int i = 0;
 
       		      for (i = 0; i < size; i++){
      			   if (wds[i] == event->wd){
+				//printf("TRIGGERED ROOT := %s\n", dirs[i]);
 				if (strstr(dirs[i], "/mnt/Share") == NULL){
 				//this means that the folder that trigger the event is a target
 				   String add_watch_dir = "";
 				   sprintf(add_watch_dir, "%s/%s", dirs[i], event->name);
 				   //add to inotify watch
+				   //printf("ADD_DIR := %s\n", add_watch_dir);
 				   int wd = inotify_add_watch(fd, add_watch_dir, IN_ALL_EVENTS);
+				   if (wd == -1){
+
+				   } else {
+					printf("READ := Watching := %s\n", add_watch_dir);
+				   }
+
 				   wds[counter] = wd;
 				   strcpy(dirs[counter], add_watch_dir);
 				   counter++;
 			        }
+			      break;
 			   }
 		      }
 
-		      syslog(LOG_INFO, "FileTransaction: Directory %s created.\n", event->name);
+
+		    //   syslog(LOG_INFO, "FileTransaction: Directory %s created.\n", event->name);
+
+		      //printf("Directory %s created.\n", event->name);
 		  } else {
 		      //file_map_share(event->name);
 		  }
@@ -352,7 +370,8 @@ void *watch_share()
                       //only recognize if part1 of the file is opened
                       //check if its cache or not
                       //if its not, assemble the file
-                      syslog(LOG_INFO, "FileTransaction: %s was opened.\n", event->name);
+                    //   syslog(LOG_INFO, "FileTransaction: %s was opened.\n", event->name);
+                      //printf("%s was opened.\n", event->name);
                       //incrementFrequency(event->name);
                       if (strstr(event->name,"part1.") != NULL){
 
@@ -403,9 +422,11 @@ void *watch_share()
                   }
               }
 
-	      if (event->mask & IN_MOVED_TO){
-		syslog(LOG_INFO, "FileTransaction: IN_MOVED_TO := %s\n", event->name);
-	      }
+
+	    //   if (event->mask & IN_MOVED_TO){
+		// syslog(LOG_INFO, "FileTransaction: IN_MOVED_TO := %s\n", event->name);
+	    //   }
+
 
               p += EVENT_SIZE + event->len;
            //}
