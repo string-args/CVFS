@@ -374,9 +374,9 @@ void *watch_share()
                       //printf("%s was opened.\n", event->name);
                       //incrementFrequency(event->name);
                       if (strstr(event->name,"part1.") != NULL){
-
+ 		      
                         incrementFrequency(event->name);
-                      /*  String comm, comm_out;
+                        String comm, comm_out;
                         int inCache = 0;
                         sprintf(comm, "ls %s", CACHE_LOC);
                         runCommand(comm, comm_out);
@@ -393,7 +393,7 @@ void *watch_share()
 
                         if (!inCache){
                             assemble(event->name);
-                        }*/
+                        }
                       }
                   }
               }

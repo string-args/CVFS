@@ -220,23 +220,21 @@ void *watch_temp()
                          //check if stripe file
                         if (sz > STRIPE_SIZE){
                            //before striping, check cache
-                        /*   printf("%s will be striped.\n", event->name);
-			   syslog(LOG_INFO, "FileTransaction: Inserting into CacheContent...\n");
-                           update_cache_list(event->name);
-                           syslog(LOG_INFO, "FileTransaction: Cache Count: %d\n", getCacheCount());
+                    /*      printf("%s will be striped.\n", event->name);
+			   printf("Inserting into CacheContent...\n");
+                           update_cache_list(filename);
+                           printf("Cache Count: %d\n", getCacheCount());
+                       
                            if (getCacheCount() < MAX_CACHE_SIZE) { //max cache size is 10
-                              printf("%s will be put to cache.\n", event->name);
-                              file_map_cache(event->name);
-                              create_link_cache(event->name);
+                              printf("%s will be put to cache.\n", filename);
+                              file_map_cache(filename, event->name);
+                             create_link_cache(filename);
                            }
-                           stripe(event->name);
-                           refreshCache();
-			*/
+                           //stripe(event->n);
+                           refreshCache();*/	
 			   stripe(root, filepath, filename);
                         } else {
-
-			//    syslog(LOG_INFO, "FileTransaction: Transferring %s to targets...\n", filename);
-
+			   syslog(LOG_INFO, "FileTransaction: Transferring %s to targets...\n", filename);
                            file_map(filepath, filename);
                         }
 		    }
@@ -244,11 +242,11 @@ void *watch_temp()
               }
 
               if (event->mask & IN_MOVED_TO){
+                 if (event->mask & IN_ISDIR)
+                      printf("The directory %s is transferring.\n", event->name);
+                  else
+                      printf("The file %s is transferring.\n", event->name);
 
-                 if (event->mask & IN_ISDIR){}
-                      //printf("The directory %s is transferring.\n", event->name);
-                  else{}
-                      //printf("The file %s is transferring.\n", event->name);
               }
 
               i += EVENT_SIZE + event->len;

@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sqlite3.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "../Global/global_definitions.h"
@@ -92,6 +92,7 @@ void* create_link(){
 
    sqlite3 *db;
 
+
    rc = sqlite3_open(DBNAME, &db);
    if (rc != SQLITE_OK){
      fprintf(stderr, "File Presentation: Can't open database: %s.\n", sqlite3_errmsg(db));
@@ -141,8 +142,8 @@ void create_link_cache(String filename){
 
    // sprintf(ln, "ln -s '%s/part1.%s' '%s/part1.%s'", CACHE_LOC, filename, SHARE_LOC, filename);
     String sors = "", dest = "";
-    sprintf(sors, "'%s/part1.%s'", CACHE_LOC, filename);
-    sprintf(dest, "'%s/part1.%s'", SHARE_LOC, filename);
+    sprintf(sors, "%s/part1.%s", CACHE_LOC, filename);
+    sprintf(dest, "%s/%s", SHARE_LOC, filename);
     if(symlink(sors, dest) == 0) {
         syslog(LOG_INFO, "DiskPooling: Link Created: '%s'\n", dest);
     } else {

@@ -242,14 +242,38 @@ void file_map(String fullpath, String filename){
 
        String sors = "", dest = "";
        if (strstr(filename, "part1.") != NULL || strstr(filename, "part") == NULL){ //for stripe file
+		printf("LINKING!!!\n");
+		int in_cache = 0;
+		String ls = "", ls_out = "";
+		sprintf(ls, "ls %s", CACHE_LOC);
+		runCommand(ls,ls_out);
+		char *pch = NULL;
+		pch = strtok(ls_out, "\n");
+		while (pch != NULL){
+			if (strcmp(pch, filename) == 0){
+				in_cache = 1;
+				break;
+			}
+			pch = strtok(NULL, "\n");
+		}
+	
+		if (!in_cache){
        		sprintf(sors, "%s/%s", sqlite3_column_text(res,1), filename);
-       		sprintf(dest, "%s/%s", SHARE_LOC, filename);
 
+		printf("SORS := %s\n", sors);
+       		
+		if (strstr(filename, "part1.") != NULL){
+		        memmove(filename,filename+strlen("part1."), 1+strlen(filename + strlen("part1.")));
+			 	
+		}
+		sprintf(dest, "%s/%s", SHARE_LOC, filename);
+		
        		if(symlink(sors, dest) == 0) {
            		syslog(LOG_INFO, "VolumeManagement: Link Created: '%s'\n", dest);
        		} else {
            		syslog(LOG_INFO, "VolumeManagement: Error creating link %s\n", dest);
        		}
+		}
        }
        //system(ln);
     }
@@ -259,12 +283,12 @@ void file_map(String fullpath, String filename){
     sqlite3_close(db);
 }
 
-void file_map_cache(String filename){
+void file_map_cache(String filename, String event_name){
     String cp;
 
     //update_cache_list(filename);
     syslog(LOG_INFO, "VolumeManagement: Copying file to cache...\n");
-    sprintf(cp, "cp '%s/%s' '%s/part1.%s'", TEMP_LOC, filename, CACHE_LOC, filename);
+    sprintf(cp, "cp '%s/%s' '%s/part1.%s'", TEMP_LOC, filename, CACHE_LOC, event_name);
     system(cp); //copy file to cache
     //sprintf(rm, "rm '/mnt/CVFSTemp/%s'", filename);
     //system(rm);
