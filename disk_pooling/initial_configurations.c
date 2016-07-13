@@ -86,19 +86,20 @@ void initialize() {
     ptr = strtok(alltargetsStr, "\n");
 
     while(ptr != NULL) {
-	printf("%s is a target.\n", ptr);
-	sprintf(sendtargets,"iscsiadm -m discovery -t sendtargets -p %s | awk '{print $2}'",ptr);
-	runCommand(sendtargets,iqn);
+    	printf("%s is a target.\n", ptr);
+    	sprintf(sendtargets,"iscsiadm -m discovery -t sendtargets -p %s | awk '{print $2}'",ptr);
+    	runCommand(sendtargets,iqn);
         printf("%s\n", iqn);
-
         sprintf(sql,"insert into Target(tid, ipadd,iqn) values (%d, '%s','%s');",counter, ptr,iqn);
 
+        printf("** initconf, sql = %s\n", sql);
+
         rc = sqlite3_exec(db,sql,0,0,0);
-	if (rc != SQLITE_OK){
-	   printf("\nDid not insert successfully!\n");
-           exit(0);
+        if (rc != SQLITE_OK){
+            printf("\nDid not insert successfully!\n");
+            exit(0);
         }
-	strcpy(sendtargets,"");
+        strcpy(sendtargets,"");
         strcpy(sql,"");
         strcpy(iqn, "");
         ptr = strtok(NULL, "\n");
@@ -115,7 +116,7 @@ void initialize() {
 
     makeVolume(0);
 
-    runCommand("cat '../File Transaction Module/AvailableDisks.txt' | grep sd[b-z] | awk '{print $4}'",disklist);
+    runCommand("cat '../file_transaction/AvailableDisks.txt' | grep sd[b-z] | awk '{print $4}'",disklist);
 
     // syslog(LOG_INFO, "DiskPooling: DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 

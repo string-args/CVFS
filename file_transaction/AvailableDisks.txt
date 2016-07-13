@@ -6,3 +6,4 @@ major minor  #blocks  name
    8        1   20446208 sda1
    8        2          1 sda2
    8        5     522240 sda5
+   8        5       1293 sdb
