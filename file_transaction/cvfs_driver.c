@@ -7,7 +7,7 @@
 #include "watch_share.h"
 #include "watch_dir.h"
 
-#define THREADCNT 1
+#define THREADCNT 2
 
 int main()
 {
@@ -20,7 +20,7 @@ int main()
    while(1){
       //pthread_create(&t[0], NULL, create_link, NULL);
       pthread_create(&t[0], NULL, watch_temp, NULL);
-      //pthread_create(&t[1], NULL, watch_share, NULL);
+      pthread_create(&t[1], NULL, watch_share, NULL);
       // pthread_create(&t[2], NULL, create_link, NULL);
 
       for (i = 0; i < THREADCNT; i++){

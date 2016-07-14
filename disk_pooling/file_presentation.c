@@ -9,89 +9,15 @@
 #include "../Utilities/cmd_exec.h"
 #include "file_presentation.h"
 
-static int callback(void *notUsed, int argc, char **argv, char **colname){
-   int i;
-   String comm;
-
-   if (argc != 2){
-      fprintf(stderr, "Error in database table: missing columns\n");
-      exit(1);
-   } else {
-      //link only the part1
-
-/*
-
-	String filename = "";
-	String usename = "";
-	strcpy(filename, argv[0]);
-	char *p;
-	p = strtok(filename, "/");
-	if(p == NULL) {
-	    strcpy(usename, argv[0]);
-	} else {
-	    strcpy(usename, p);
-	}
-	//syslog(LOG_INFO, "DiskPooling: usename = %s\n", usename);
-
-	int exist = 0;
-	String ls = "", ls_out = "";
-	strcpy(ls, "ls /mnt/Share/");
-	runCommand(ls,ls_out);
-	char *ptr1 = strtok(ls_out, "\n");
-	while (ptr1 != NULL){
-		if (strcmp(ptr1,usename) == 0){
-			exist = 1;
-			break;
-		}
-		ptr1 = strtok(NULL, "\n");
-	}
-	//strcpy(argv[0], usename);
-	//syslog(LOG_INFO, "DiskPooling: exist = %d\n", exist);
-	if (!exist){
-      if (strstr(usename,"part1.") != NULL){
-        // sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], usename, SHARE_LOC, usename);
-
-        String sors = "", dest = "";
-		sprintf(sors, "'%s/%s'", argv[1], usename);
-		sprintf(dest, "'%s/%s'", SHARE_LOC, usename);
-        if(symlink(sors, dest) == 0) {
-            syslog(LOG_INFO, "DiskPooling: Link Created: '%s'\n", dest);
-        } else {
-            printf("!!! Error creating link %s", dest);;
-        }
-        // system(comm);
-      } else if (strstr(usename, "part1.") == NULL){ //link linear files
-        // sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], usename, SHARE_LOC, usename);
-        // syslog(LOG_INFO, "DiskPooling: Link Created: '/mnt/Share/%s'\n", usename);
-        String sors = "", dest = "";
-        sprintf(sors, "'%s/%s'", argv[1], usename);
-		sprintf(dest, "'%s/%s'", SHARE_LOC, usename);
-        if(symlink(sors, dest) == 0) {
-            syslog(LOG_INFO, "DiskPooling: Link Created: '%s'\n", dest);
-        } else {
-            printf("!!! Error creating link %s", dest);
-        }
-        // syslog(LOG_INFO, "DiskPooling: COMM = %s\n", comm);
-    	// system(comm);
-      } }
-      //sprintf(comm, "ln -s '%s/%s' '%s/%s'", argv[1], argv[0], SHARE_LOC, argv[0]);
-      //syslog(LOG_INFO, "DiskPooling: Link Created: '/mnt/Share/%s'\n", argv[0]);
-      //syslog(LOG_INFO, "DiskPooling: comm = %s\n", comm);
-      //system(comm);*/
-   }
-   return 0;
-}
-
 void* create_link(){
-   int tcount = 0;
    int rc;
+   const char *tail;
 
-   char *err = 0;
-
-   String file_list, comm, query, comm_out;
+   String query = "", comm = "", comm_out = "";
+   int inCache = 0;
 
    sqlite3 *db;
-
+   sqlite3_stmt *res;
 
    rc = sqlite3_open(DBNAME, &db);
    if (rc != SQLITE_OK){
@@ -100,42 +26,50 @@ void* create_link(){
      exit(1);
    }
 
-   /*get current contents of share folder*/
-   sprintf(comm, "ls %s", SHARE_LOC);
-
-   strcpy(file_list, "");
-   strcpy(comm_out, "");
-   //syslog(LOG_INFO, "DiskPooling: File Presentation:");
+   sprintf(comm, "ls %s", CACHE_LOC);
    runCommand(comm, comm_out);
+   char *pch = strtok(comm_out, "\n");
 
-   char *ptr = strtok(comm_out, "\n");
+   sprintf(query, "SELECT filename, fileloc FROM VolContent;");
 
-   while (ptr != NULL){
-      strcat(file_list,"\"");
-      strcat(file_list,ptr);
-      strcat(file_list,"\"");
-      ptr = strtok(NULL, "\n");
-      if (ptr != NULL){
-        strcat(file_list,",");
-      }
+   rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
+
+   while (sqlite3_step(res) == SQLITE_ROW){
+
+	while (pch != NULL){
+		if (strcmp(sqlite3_column_text(res,0),pch) == 0){
+			inCache = 1;
+			break;
+		}
+		pch = strtok(NULL, "\n");
+	}
+
+	if (!inCache){
+		//if not in cache, link only part1 and linear file
+		if (strstr(sqlite3_column_text(res,0), "part1.") != NULL || strstr(sqlite3_column_text(res,0), "part") == NULL){
+			String source = "", dest = "";
+			sprintf(source, "%s/%s", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
+
+			if (strstr(sqlite3_column_text(res,0), "part1.") != NULL){
+				String part = "";
+				strcpy(part, sqlite3_column_text(res,0));
+				memmove(part, part + strlen("part1."), 1 + strlen(part + strlen("part1.")));
+				sprintf(dest, "%s/%s", SHARE_LOC, part);
+			} else {
+				sprintf(dest, "%s/%s", SHARE_LOC, sqlite3_column_text(res,0));
+			}
+
+			if (symlink(source,dest) == 0){
+				syslog(LOG_INFO, "File Presentation: Created Link: %s\n", dest);
+			}else {	}
+		}
+	}
    }
 
-   //sprintf(file_list, "%s", comm_out);
-   //syslog(LOG_INFO, "DiskPooling: File List: %s\n", file_list);
-
-   sprintf(query, "SELECT filename, fileloc FROM VolContent WHERE filename NOT IN (%s);", file_list);
-
-   //syslog(LOG_INFO, "DiskPooling: Query = %s\n", query);
-
-
-   rc = sqlite3_exec(db, query, callback, 0, &err);
-   if (rc != SQLITE_OK){
-      fprintf(stderr, "SQL Error: %s.\n", err);
-      sqlite3_free(err);
-   }
-
+   sqlite3_finalize(res);
    sqlite3_close(db);
 }
+
 
 void create_link_cache(String filename){
    // String ln;
@@ -153,6 +87,7 @@ void create_link_cache(String filename){
    // system(ln);
    //syslog(LOG_INFO, "DiskPooling: Created Link for file in Cache: %s\n" , filename);
 }
+
 
 void update_link_cache(String filename, String fileloc){
     String ln, rm;
