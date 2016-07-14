@@ -239,42 +239,6 @@ void file_map(String fullpath, String filename){
        update_list(db, filename, sqlite3_column_text(res,1));
        //String ln = "";
        //sprintf(ln, "ln -s '%s/%s' '%s/%s'", sqlite3_column_text(res,1), filename, SHARE_LOC, filename);
-
-       String sors = "", dest = "";
-       if (strstr(filename, "part1.") != NULL || strstr(filename, "part") == NULL){ //for stripe file
-		printf("LINKING!!!\n");
-		int in_cache = 0;
-		String ls = "", ls_out = "";
-		sprintf(ls, "ls %s", CACHE_LOC);
-		runCommand(ls,ls_out);
-		char *pch = NULL;
-		pch = strtok(ls_out, "\n");
-		while (pch != NULL){
-			if (strcmp(pch, filename) == 0){
-				in_cache = 1;
-				break;
-			}
-			pch = strtok(NULL, "\n");
-		}
-	
-		if (!in_cache){
-       		sprintf(sors, "%s/%s", sqlite3_column_text(res,1), filename);
-
-		printf("SORS := %s\n", sors);
-       		
-		if (strstr(filename, "part1.") != NULL){
-		        memmove(filename,filename+strlen("part1."), 1+strlen(filename + strlen("part1.")));
-			 	
-		}
-		sprintf(dest, "%s/%s", SHARE_LOC, filename);
-		
-       		if(symlink(sors, dest) == 0) {
-           		syslog(LOG_INFO, "VolumeManagement: Link Created: '%s'\n", dest);
-       		} else {
-           		syslog(LOG_INFO, "VolumeManagement: Error creating link %s\n", dest);
-       		}
-		}
-       }
        //system(ln);
     }
 
