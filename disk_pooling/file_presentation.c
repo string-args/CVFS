@@ -14,7 +14,7 @@ void* create_link(){
    const char *tail;
 
    String query = "", comm = "", comm_out = "";
-   int inCache = 0;
+   //int inCache = 0;
 
    sqlite3 *db;
    sqlite3_stmt *res;
@@ -35,7 +35,7 @@ void* create_link(){
    rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
 
    while (sqlite3_step(res) == SQLITE_ROW){
-
+	int inCache = 0;
 	while (pch != NULL){
 		if (strcmp(sqlite3_column_text(res,0),pch) == 0){
 			inCache = 1;
@@ -43,14 +43,17 @@ void* create_link(){
 		}
 		pch = strtok(NULL, "\n");
 	}
+	//printf("FILE := %s || IN CACHE = %d\n", sqlite3_column_text(res,0), inCache);
 
 	if (!inCache){
+		//printf("NOT IN CAHCE!!!\n");
 		//if not in cache, link only part1 and linear file
 		if (strstr(sqlite3_column_text(res,0), "part1.") != NULL || strstr(sqlite3_column_text(res,0), "part") == NULL){
 			String source = "", dest = "";
 			sprintf(source, "%s/%s", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
 
 			if (strstr(sqlite3_column_text(res,0), "part1.") != NULL){
+				printf("STRIPED!!!!\n");
 				String part = "";
 				strcpy(part, sqlite3_column_text(res,0));
 				memmove(part, part + strlen("part1."), 1 + strlen(part + strlen("part1.")));
@@ -62,6 +65,17 @@ void* create_link(){
 			if (symlink(source,dest) == 0){
 				syslog(LOG_INFO, "File Presentation: Created Link: %s\n", dest);
 			}else {	}
+		}
+	} else {
+		if (strstr(sqlite3_column_text(res,0),"part1.") != NULL){
+			String filename = "", source = "", dest = "";
+			strcpy(filename, sqlite3_column_text(res,0));
+			memmove(filename,filename+strlen("part1."),1+strlen(filename+strlen("part1.")));
+			sprintf(source, "%s/%s", CACHE_LOC, sqlite3_column_text(res,0));
+			sprintf(dest, "%s/%s", SHARE_LOC, filename);
+			if (symlink(source,dest) == 0){
+				syslog(LOG_INFO,"File Presentation: Created Link %s\n", dest);
+			} 
 		}
 	}
    }

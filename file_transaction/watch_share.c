@@ -265,8 +265,10 @@ void *watch_share()
        perror( "Couldn't initialize inotify" );
     }
 
+
+   printf("HELLO!!!\n");
     while (sqlite3_step(res) == SQLITE_ROW){
-       wd = inotify_add_watch(fd, sqlite3_column_text(res,0), IN_ALL_EVENTS);
+       wd = inotify_add_watch(fd, sqlite3_column_text(res,0), IN_CREATE | IN_OPEN);
        wds[counter] = wd;
        strcpy(dirs[counter], sqlite3_column_text(res,0));
        counter++;
@@ -283,7 +285,7 @@ void *watch_share()
 
     }
 
-   wd = inotify_add_watch(fd, CACHE_LOC, IN_ALL_EVENTS);
+   wd = inotify_add_watch(fd, CACHE_LOC, IN_DONT_FOLLOW);
    wds[counter] = wd;
    strcpy(dirs[counter], CACHE_LOC);
    counter++;
@@ -291,13 +293,13 @@ void *watch_share()
     	syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", CACHE_LOC);
    }
 
-   wd = inotify_add_watch(fd, SHARE_LOC, IN_ALL_EVENTS);
-   wds[counter] = wd;
-   strcpy(dirs[counter], SHARE_LOC);
-   counter++;
-   if (wd != -1){
-	syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", SHARE_LOC);
-   }
+   //wd = inotify_add_watch(fd, SHARE_LOC, IN_ALL_EVENTS);
+   //wds[counter] = wd;
+   //strcpy(dirs[counter], SHARE_LOC);
+   //counter++;
+   //if (wd != -1){
+   //	syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", SHARE_LOC);
+   //}
 
     /*do it forever*/
     for(;;){
@@ -355,13 +357,13 @@ void *watch_share()
 		  }
 	     }
 
-             if (event->mask & IN_MODIFY){
+             /*if (event->mask & IN_MODIFY){
 		  if (event->mask & IN_ISDIR){
 			//do nothing
 		  } else {
 		     syslog(LOG_INFO, "FileTransaction: File %s was modified.\n", event->name);
 		  }
-	     }
+	     }*/
 
               if (event->mask & IN_OPEN){
                   if (event->mask & IN_ISDIR){
@@ -374,9 +376,18 @@ void *watch_share()
                       //printf("%s was opened.\n", event->name);
                       //incrementFrequency(event->name);
                       if (strstr(event->name,"part1.") != NULL){
- 		      
+ 	
+		//	int k = 0;
+                  //     for (k = 0; k < counter; k ++){
+		//	if (wds[k] == event->wd){
+		//		printf("TRIGGER := %s | FILENAME := %s\n", dirs[k], event->name);
+		//		break;
+		//	}
+		//	}
+
+	      
                         incrementFrequency(event->name);
-                        String comm, comm_out;
+                        String comm = "", comm_out = "";
                         int inCache = 0;
                         sprintf(comm, "ls %s", CACHE_LOC);
                         runCommand(comm, comm_out);
@@ -390,7 +401,7 @@ void *watch_share()
                              }
 			     ptr = strtok(NULL, "\n");
                         }
-
+			printf("FILE IN CACHE := %d\n", inCache);
                         if (!inCache){
                             assemble(event->name);
                         }

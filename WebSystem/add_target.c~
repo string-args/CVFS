@@ -44,7 +44,6 @@ int main(int argc, char *argv[]) {
     // target is valid, proceed to discovery
     sprintf(comm, "iscsiadm -m discovery -t sendtargets -p %s | awk '{print $2}'", ipadd);
     //system(comm);
-	printf("comm = %s\n", comm);
     runCommand(comm, iqn);
    printf("IQN := %s\n", iqn);
     sprintf(login, "iscsiadm -m node -l -T %s -p %s:3260", iqn, ipadd);

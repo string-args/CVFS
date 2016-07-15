@@ -6,7 +6,7 @@
 
 typedef char String[1024];
 
-#define AV_DISKS	"../File Transaction Module/AvailableDisks.txt"
+#define AV_DISKS	"../file_transaction/AvailableDisks.txt"
 
 #define DBNAME		"../Database/cvfs_db"
 #define SHARE_LOC	"/mnt/Share"

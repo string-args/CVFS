@@ -125,7 +125,7 @@ void initialize() {
     system("cat '../file_transaction/AvailableDisks.txt' | grep sd[b-z] | awk '{print $4}' > SDNAME.txt");
 
     FILE *fp;
-    String l;
+    string l;
 
     fp = fopen("SDNAME.txt", "r");
     if (fp == NULL) {
@@ -133,9 +133,12 @@ void initialize() {
         exit(1);
     }
 
-    //while(fscanf(fp, "%s", l) != EOF) {
-     //   printf("read: %s\n", l);
-    //}
+    while(fscanf(fp, "%s", l) != EOF) {
+        printf("read: %s\n", s);
+    }
+
+    printf("closign file\n");
+    fclose(fp);
 
     // syslog(LOG_INFO, "DiskPooling: DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
@@ -181,9 +184,6 @@ void initialize() {
     //    pp = strtok(NULL,"\n");
     //    printf("***************\n\n\n%s\n\n\n", ptr1);
     }
-
-    printf("closign file\n");
-    fclose(fp);
 
     printf("\n\nInitialization finished\n");
 }

@@ -153,3 +153,10 @@ void check_target() {
 	sqlite3_finalize(res);
 	sqlite3_close(db);
 }
+
+int main() {
+    check_target();
+    return 0;
+
+}
+

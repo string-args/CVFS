@@ -235,6 +235,9 @@ void file_map(String fullpath, String filename){
        sprintf(comm, "mv '%s' '%s/%s'", fullpath, sqlite3_column_text(res,1), filename);
        //syslog(LOG_INFO, "VolumeManagement: mv = %s\n", comm);
        system(comm);
+//	sprintf(comm, "rm '%s'", fullpath);
+//	printf("rm = %s\n", comm);
+//	system(comm);
 	//this part update the entry of the file to volcontent table
        update_list(db, filename, sqlite3_column_text(res,1));
        //String ln = "";

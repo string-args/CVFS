@@ -1,5 +1,4 @@
 /*
-    THIS IS TEMP VERSION 2: diskname array solution
     CVFS Inital Configuration
     @author: Aidz and Jeff           :">
     requires:
@@ -123,38 +122,23 @@ void initialize() {
 
     // syslog(LOG_INFO, "DiskPooling: Disklist before: %s\n\n", disklist);
     //strcat(disklist, "\n");
+    char *ptr1;
+    //int counter = 1;    // to aidz: di ako sure dito ah.. pano kung nag delete then init_conf sure ba na 1 lagi tapos sunod sunod?
+    ptr1 = strtok(disklist,"\n");
     // syslog(LOG_INFO, "DiskPooling: PTR Before: %s\n\n", ptr1);
     // syslog(LOG_INFO, "DiskPooling: DIskList after: %s\n\n", disklist);
     counter = 1;
-    int k = 0, l = 0;
-    string disknames[50];
-    string buo = "";
-    for (k = 0; k < strlen(disklist); k++) {
-        if(disklist[k] == '\n') {
-            sprintf(disknames[l], "%s%c", disknames[l], '\0');
-            l++;
-        } else {
-            sprintf(disknames[l], "%s%c", disknames[l], disklist[k]);
-        }
-    }
-
-    // below code needed if no \n in the last of grep
-    sprintf(disknames[l], "%s%c", disknames[l], '\0');
-    l++;
-
-    for(k = 0; k < l; k++) {
-        string pp;
-        strcpy(pp, disknames[k]);
+    while(ptr1 != NULL){
     //    syslog(LOG_INFO, "DiskPooling: PTR: %s\n\n", ptr1);
     //    syslog(LOG_INFO, "DiskPooling: INSIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
        strcat(assocvol,"/dev/vg");
-       strcat(assocvol,pp);
+       strcat(assocvol,ptr1);
        strcat(assocvol,"/lv");
-       strcat(assocvol,pp);
+       strcat(assocvol,ptr1);
 
 
        strcat(mountpt,"/mnt/lv");
-       strcat(mountpt,pp);
+       strcat(mountpt,ptr1);
 
        sprintf(command1,"lvdisplay %s | grep 'LV Size' | awk '{print $3,$4}'",assocvol);
 
@@ -177,7 +161,7 @@ void initialize() {
        strcpy(mountpt,"");
        strcpy(avspace,"");
        counter++;
-    //    pp = strtok(NULL,"\n");
+       ptr1 = strtok(NULL,"\n");
     //    printf("***************\n\n\n%s\n\n\n", ptr1);
     }
 

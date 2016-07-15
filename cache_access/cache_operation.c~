@@ -51,6 +51,11 @@ void incrementFrequency(String filename){
 		good = 1;
 	}
    }
+  while ( SQLITE_LOCKED == (rc = sqlite3_exec(db, query, 0, 0, &errmsg)) ){
+	//rc = wait_for_unlock_notify(db);
+	printf("LOCKED DATABASE!\n ");
+	//if (rc != SQLITE_OK) break;
+  }
 
   // if (rc != SQLITE_OK){
     // fprintf(stderr, "SQL Error: %s\n", errmsg);

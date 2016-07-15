@@ -7,8 +7,8 @@ MAIN = cvfs_driver
 
 all: $(MAIN) add_target decomm
 
-$(MAIN): file_transaction/cvfs_driver.c cache_operation.o file_presentation.o initial_configurations.o file_striping.o file_mapping.o file_assembly.o make_volumes.o cmd_exec.o watch_dir.o watch_share.o target_stat.o
-	$(CC) file_transaction/cvfs_driver.c cache_operation.o file_presentation.o initial_configurations.o file_striping.o file_mapping.o file_assembly.o make_volumes.o cmd_exec.o watch_dir.o watch_share.o target_stat.o $(LIBS) -o file_transaction/$(MAIN)
+$(MAIN): file_transaction/cvfs_driver.c cache_operation.o file_presentation.o initial_configurations.o file_striping.o file_mapping.o file_assembly.o make_volumes.o cmd_exec.o watch_dir.o watch_share.o #target_stat.o
+	$(CC) file_transaction/cvfs_driver.c cache_operation.o file_presentation.o initial_configurations.o file_striping.o file_mapping.o file_assembly.o make_volumes.o cmd_exec.o watch_dir.o watch_share.o $(LIBS) -DTHREADSAFE=1 -o file_transaction/$(MAIN)
 
 cache_operation.o: cache_access/cache_operation.c
 	$(CC) -c cache_access/cache_operation.c
@@ -43,8 +43,12 @@ watch_share.o: file_transaction/watch_share.c
 target_stat.o: file_recovery/target_stat.c
 	$(CC) -c file_recovery/target_stat.c
 
-add_target: WebSystem/add_target.c make_volumes.o cmd_exec.o
-	$(CC) WebSystem/add_target.c make_volumes.o cmd_exec.o -o add_target
+add_target: WebSystem/add_target.c make_volumes.o cmd_exec.o initial_configurations.o
+	$(CC) WebSystem/add_target.c make_volumes.o cmd_exec.o  initial_configurations.o $(LIBS) -o file_transaction/add_target
 
 decomm: WebSystem/decomm.c make_volumes.o cmd_exec.o
-	$(CC) WebSystem/decomm.c cmd_exec.o -lsqlite3 -o decomm
+	$(CC) WebSystem/decomm.c cmd_exec.o -lsqlite3 -o file_transaction/decomm
+
+# this line just for solo recov
+target_stat: file_recovery/target_stat.c
+	$(CC) file_recovery/target_stat.c $(LIBS) -O file_recovery/target_stat
