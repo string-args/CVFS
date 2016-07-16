@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sqlite3.h>
 #include <syslog.h>
+#include <stdlib.h>
 
 #include "../Global/global_definitions.h"
 #include "../disk_pooling/initial_configurations.h"
