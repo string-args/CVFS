@@ -1,5 +1,7 @@
 #include <pthread.h>
 #include <syslog.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "../Global/global_definitions.h"
 #include "../disk_pooling/file_presentation.h"
@@ -9,13 +11,20 @@
 
 #define THREADCNT 2
 
-int main()
+int main(int argc, char **argv)
 {
    pthread_t t[THREADCNT];
    int i;
    // open logging
    openlog("cvfs2", LOG_PID|LOG_CONS, LOG_USER);
-system("clear");
+   system("clear");
+
+   if (argc == 2){
+	if (strcmp(argv[1], "init") == 0){
+		initialize();
+	}
+   }
+
  //  initialize();
    while(1){
       //pthread_create(&t[0], NULL, create_link, NULL);
