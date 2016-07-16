@@ -12,7 +12,10 @@ typedef char String[1024];
 #define SHARE_LOC	"/mnt/Share"
 #define	TEMP_LOC	"/mnt/CVFSTemp"
 #define CACHE_LOC	"/mnt/CVFSCache"	
+#define ASSEMBLY_LOC	"/mnt"
+#define STORAGE_LOC	"/mnt/CVFStorage"
 
 #define MAX_CACHE_SIZE	2
 
-#define STRIPE_SIZE 	536870912	//512MB 
+#define L_SIZE 	134217728	//512MB 
+#define STRIPE_SIZE	536870912

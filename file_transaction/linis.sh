@@ -5,4 +5,5 @@ rm -rf /mnt/lvsde/*
 rm -rf /mnt/CVFSFStorage/*
 rm -rf /mnt/CVFSTemp/*
 rm -rf /mnt/Share/*
-
+rm -rf /mnt/CVFSCache/*
+rm -rf /mnt/CVFStorage/*

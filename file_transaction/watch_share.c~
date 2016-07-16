@@ -105,7 +105,7 @@ void *watch_share()
 
    //printf("HELLO!!!\n");
     while (sqlite3_step(res) == SQLITE_ROW){
-       wd = inotify_add_watch(fd, sqlite3_column_text(res,0), IN_CREATE | IN_OPEN | IN_CLOSE);
+       wd = inotify_add_watch(fd, sqlite3_column_text(res,0), IN_CREATE | IN_OPEN);
        wds[counter] = wd;
        strcpy(dirs[counter], sqlite3_column_text(res,0));
        counter++;
@@ -122,7 +122,7 @@ void *watch_share()
 
     }
 
-   wd = inotify_add_watch(fd, CACHE_LOC, IN_OPEN | IN_CLOSE);
+   wd = inotify_add_watch(fd, CACHE_LOC, IN_OPEN);
    wds[counter] = wd;
    strcpy(dirs[counter], CACHE_LOC);
    counter++;
@@ -173,7 +173,6 @@ void *watch_share()
                   if (event->mask & IN_ISDIR){
                       
                   }else {
-			//printf("Linear file %s opened.\n", event->name);
                       if (strstr(event->name,"part1.") != NULL){
  	
 			int k = 0;
@@ -205,18 +204,8 @@ void *watch_share()
 
 			    String assembled_file = "";
 			    sprintf(assembled_file, "%s/%s", ASSEMBLY_LOC, event->name);
-			    //printf("Assembled File: %s\n", assembled_file);
+			    printf("Assembled File: %s\n");y
                             //assemble(event->name);
-			    printf("Checking if assembled file exist...\n");
-			    FILE *fp;
-			    fp = fopen(assembled_file, "r");
-			    if (fp == NULL){
-				printf("Assembled file does not exist. Assembling here...\n");
-				assemble(event->name);
-			    } else {
-				printf("Assembled file already exist. Don't assembled anymore..\n");
-			    }
-			    fclose(fp);
                         }
                       }
                   }
@@ -227,18 +216,7 @@ void *watch_share()
  
                   }else{
                       syslog(LOG_INFO, "FileTransaction: The file %s was closed.\n", event->name);
-                      printf("File %s closed.\n", event->name);
-		      String original_file = "";
-		      sprintf(original_file, "%s/%s", STORAGE_LOC, event->name);
-		      //FILE *fp;
-                    //  fp = fopen(original_file, "r");
-		  //    if (fp == NULL){
-		//	printf("Original file does not exist.. Do nothing..\n");
-		  //    } else {
-		//	printf("Original file exist. File closed. Disassembling file..\n");
-		     //}
-		      //fclose(fp);
-                      if (strstr(event->name, "part1.") != NULL){
+                  if (strstr(event->name, "part1.") != NULL){
                            refreshCache();
                       }
                   }

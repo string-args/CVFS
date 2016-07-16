@@ -220,22 +220,23 @@ void *watch_temp()
                          //check if stripe file
                         if (sz > STRIPE_SIZE){
                            //before striping, check cache
-                          printf("%s will be striped.\n", event->name);
+                           printf("%s will be striped.\n", event->name);
 			   printf("Inserting into CacheContent...\n");
-                           update_cache_list(filename);
-                           printf("Cache Count: %d\n", getCacheCount());
-                       
-                           if (getCacheCount() < MAX_CACHE_SIZE) { //max cache size is 10
-                              printf("%s will be put to cache.\n", filename);
+                           update_cache_list(event->name);
+                           //printf("Cache Count: %d\n", getCacheCount());
+                          // if (getCacheCount() < MAX_CACHE_SIZE) { //max cache size is 10
+                              printf("Cache Size: %d\n", getCacheCount());
+			      printf("%s will be put to cache.\n", filename);
                               file_map_cache(filename, event->name);
                              //create_link_cache(filename);
-                           }
+                          // }
                            //stripe(event->n);
-//                           refreshCache();	
-			   printf("ROOT = %s\n", root);
-			   printf("FILEPATH := %s\n", filepath);
-			   printf("FILENAME := %s\n", filename);
+                           //refreshCache();	
+			   //printf("ROOT = %s\n", root);
+			   //printf("FILEPATH := %s\n", filepath);
+			   //printf("FILENAME := %s\n", filename);
 			   stripe(root, filepath, filename);
+			   //refreshCache();
                         } else {
 			   syslog(LOG_INFO, "FileTransaction: Transferring %s to targets...\n", filename);
                            file_map(filepath, filename);
