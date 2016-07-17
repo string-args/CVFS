@@ -139,13 +139,42 @@ void file_map(String fullpath, String filename){
 }
 
 void file_map_cache(String filename, String event_name){
-    String cp;
+    String cp = "", source = "", dest = "";
+
+
+    int flag = 1;
+    FILE *fp = fopen ("../file_transaction/random.txt", "wb");
+    fprintf(fp, "%d", flag);
+    fclose(fp); //not yet done striping;
+
+    //printf("\n\nFLAG == ");
+    //system("cat ../file_transaction/random.txt");
+    //printf("\n\n");
 
     //update_cache_list(filename);
     syslog(LOG_INFO, "VolumeManagement: Copying file to cache...\n");
     sprintf(cp, "cp '%s/%s' '%s/part1.%s'", TEMP_LOC, filename, CACHE_LOC, event_name);
     printf("in filemapcache: cp: %s\n", cp);
     system(cp); //copy file to cache
+
+    //String file = "";
+    //sprintf(file, "%s/part1.%s", CACHE_LOC, event_name);
+    //FILE *fp = fopen(file, "rb");
+    //if (fp != NULL){ 
+    //	printf("File already in Cache!\n");
+    //} else {
+   //	printf("File not in cache!\n");
+    //}
+    //fclose(fp);
+
+    create_link();
+    //sprintf(source, "%s/%s", TEMP_LOC, filename);
+//    sprintf(source, "%s/part1.%s", CACHE_LOC, event_name);
+//    sprintf(dest, "%s/%s", SHARE_LOC, filename);
+//    if (symlink(source, dest) == 0){
+//   	syslog(LOG_INFO, "File Presentation: Created Link %s\n", dest); 
+//    }
+
     //sprintf(rm, "rm '/mnt/CVFSTemp/%s'", filename);
     //system(rm);
 }

@@ -17,5 +17,6 @@ typedef char String[1024];
 
 #define MAX_CACHE_SIZE	2
 
-#define L_SIZE 	134217728	//512MB 
-#define STRIPE_SIZE	536870912
+#define STRIPE_SIZE 	134217728	//512MB 
+#define L_SIZE	536870912
+

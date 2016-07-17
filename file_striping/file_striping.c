@@ -57,6 +57,12 @@ void stripe(String dirpath, String fullpath, String filename){
 
   memmove(filename, filename+strlen(dirpath), 1 +strlen(filename+strlen(dirpath)));
 
+  int flag = 1;
+  FILE *fp = fopen("../file_transaction/random.txt", "w");
+  //fwrite("1", 1, sizeof("1"), fp); //not yet done striping  
+  fprintf(fp, "%d", flag);
+  fclose(fp); 
+
   while ((bytes_read = fread(buffer, sizeof(char), STRIPE_SIZE, file_to_open)) > 0){
        sprintf(part_name, "%spart%d.%s", path, part_count, filename);
        //printf("PARTNAME : %s\n", part_name);
@@ -71,9 +77,16 @@ void stripe(String dirpath, String fullpath, String filename){
        //printf("Filename after memmove: %s\n", part_name);
        file_map(part_name, part_file);
        part_count++;
+
+	printf("READ BYTES := %d\n", bytes_read);
   }
   free(buffer);
   system(comm);
   fclose(file_to_open);
 
+  flag = 0;
+  fp = fopen("../file_transaction/random.txt", "w");
+  //fwrite("0", 1, sizeof("0"), fp); //done striping
+  fprintf(fp, "%d", flag);
+  fclose(fp);
 }

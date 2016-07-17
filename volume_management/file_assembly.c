@@ -58,16 +58,16 @@ void assemble_cache_file(String filename){
    }
    sqlite3_finalize(res);
    sqlite3_close(db);
-   printf("RANDOM!\n");
+   //printf("RANDOM!\n");
    sprintf(comm, "cat %s > '%s/%s'", files, ASSEMBLY_LOC, assfile);
    //syslog(LOG_INFO, "VolumeManagement: comm = %s\n", comm);
 
   //syslog(LOG_INFO, "VolumeManagement: PART1 OF THE FILE: %s/%s", ftemploc,ftemp);
    system(comm);
-   syslog(LOG_INFO, "VolumeManagement: Assembled File: %s%s\n", ASSEMBLY_LOC, assfile);
+   syslog(LOG_INFO, "VolumeManagement: Assembled File: %s/%s\n", ASSEMBLY_LOC, assfile);
 
    String put_cache;
-   sprintf(put_cache, "mv '%s%s' '%s/%s'", ASSEMBLY_LOC, assfile, CACHE_LOC, assfile);
+   sprintf(put_cache, "mv '%s/%s' '%s/%s'", ASSEMBLY_LOC, assfile, CACHE_LOC, assfile);
    //syslog(LOG_INFO, "VolumeManagement: MV = %s\n", put_cache);
    system(put_cache);
    syslog(LOG_INFO, "VolumeManagement: %s was put in cache.\n", assfile);

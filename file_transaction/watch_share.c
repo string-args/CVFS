@@ -179,12 +179,18 @@ void *watch_share()
 			int k = 0;
 			for (k = 0; k < counter; k++){
 				if (wds[k] == event->wd){
-					printf("IN OPEN : %s | FILENAME : %s\n", dirs[k], event->name);
+					//printf("IN OPEN : %s | FILENAME : %s\n", dirs[k], event->name);
 					break;
 				}
 			}
 
-			printf("FILENAME : %s opened.\n", event->name);
+			//printf("FILENAME : %s opened.\n", event->name);
+			int flag;
+                        FILE *fp = fopen("random.txt", "r");
+			fscanf(fp,"%d",&flag); 			
+			fclose(fp);
+			printf("IN OPEN FLAG := %d\n", flag);
+			if (flag == 0){ //done striping continue with open event
                         incrementFrequency(event->name);
                         String comm = "", comm_out = "";
                         int inCache = 0;
@@ -201,24 +207,25 @@ void *watch_share()
 			     ptr = strtok(NULL, "\n");
                         }
                         if (!inCache){
-			    printf("Should be assembling file here....\n");
+			    printf("Watch Share: Should be assembling file here....\n");
 
 			    String assembled_file = "";
 			    sprintf(assembled_file, "%s/%s", ASSEMBLY_LOC, event->name);
 			    //printf("Assembled File: %s\n", assembled_file);
                             //assemble(event->name);
-			    printf("Checking if assembled file exist...\n");
-			    FILE *fp;
-			    fp = fopen(assembled_file, "r");
-			    if (fp == NULL){
-				printf("Assembled file does not exist. Assembling here...\n");
-				assemble(event->name);
-			    } else {
-				printf("Assembled file already exist. Don't assembled anymore..\n");
-			    }
-			    fclose(fp);
+			    //printf("Checking if assembled file exist...\n");
+			    //FILE *fp;
+			    //fp = fopen(assembled_file, "r");
+			    //if (fp == NULL){
+				//printf("Assembled file does not exist. Assembling here...\n");
+				//assemble(event->name);
+			    //} else {
+				//printf("Assembled file already exist. Don't assembled anymore..\n");
+			    //}
+			    //fclose(fp);
                         }
                       }
+		    }
                   }
               }
 
@@ -227,9 +234,18 @@ void *watch_share()
  
                   }else{
                       syslog(LOG_INFO, "FileTransaction: The file %s was closed.\n", event->name);
-                      printf("File %s closed.\n", event->name);
-		      String original_file = "";
-		      sprintf(original_file, "%s/%s", STORAGE_LOC, event->name);
+                      //printf("File %s closed.\n", event->name);
+		      int k = 0;
+		      for (k = 0; k < counter; k++){
+			if (wds[k] == event->wd){
+				//printf("IN_CLOSE : %s | FILENAME : %s\n", dirs[k], event->name);
+				break;
+			}
+		      }		      
+		      //strcpy(COMMANDS[COUNTER], "");
+		      //COUNTER++;
+		      //String original_file = "";
+		      //sprintf(original_file, "%s/%s", STORAGE_LOC, event->name);
 		      //FILE *fp;
                     //  fp = fopen(original_file, "r");
 		  //    if (fp == NULL){
@@ -238,9 +254,16 @@ void *watch_share()
 		//	printf("Original file exist. File closed. Disassembling file..\n");
 		     //}
 		      //fclose(fp);
-                      if (strstr(event->name, "part1.") != NULL){
-                           refreshCache();
-                      }
+		      int flag;
+		      FILE *fp = fopen("random.txt", "rb");
+		      fscanf(fp, "%d", &flag);
+		      fclose(fp);
+		      printf("IN CLOSE FLAG := %d\n", flag);
+		      if (flag == 0) { //done striping
+                      	if (strstr(event->name, "part1.") != NULL){
+                        	   refreshCache();
+                      	}
+		      }
                   }
               }
 

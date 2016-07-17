@@ -214,20 +214,21 @@ void *watch_temp()
 		      //syslog(LOG_INFO, "FileTransaction: hahahaa: filepath:%s\n\tfilename:%s", filepath, filename);
                       fp = fopen(filepath, "rb");
                       if (fp != NULL){
-                       fseek(fp, 0L, SEEK_END);
-                        long sz = ftell(fp);
-                        rewind(fp);
+                         fseek(fp, 0L, SEEK_END);
+                         long sz = ftell(fp);
+                         rewind(fp);
                          //check if stripe file
                         if (sz > STRIPE_SIZE){
                            //before striping, check cache
-                           printf("%s will be striped.\n", event->name);
-			   printf("Inserting into CacheContent...\n");
-                           update_cache_list(event->name);
+			   printf("STRIPED: %s | SIZE : %ld bytes\n", event->name, sz);
+                           //printf("%s will be striped.\n", event->name);
+			   //printf("Inserting into CacheContent...\n");
+                           update_cache_list(event->name, root);
                            //printf("Cache Count: %d\n", getCacheCount());
                           // if (getCacheCount() < MAX_CACHE_SIZE) { //max cache size is 10
-                              printf("Cache Size: %d\n", getCacheCount());
-			      printf("%s will be put to cache.\n", filename);
-                              file_map_cache(filename, event->name);
+                           printf("Cache Size: %d\n", getCacheCount());
+			   printf("%s will be put to cache.\n", filename);
+                           file_map_cache(filename, event->name);
                              //create_link_cache(filename);
                           // }
                            //stripe(event->n);
