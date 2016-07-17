@@ -313,7 +313,7 @@ void refreshCache(){
 	      //assemble_cache_file(filename);	// AIDZ PA CHECK YUNG TAMANG CALL SA PAG ASSEMBLE
               String rm = "";
           
-	      sprintf(rm, "rm '%s/%s/%s'", SHARE_LOC, root, filename);
+	      sprintf(rm, "rm '%s/%s%s'", SHARE_LOC, root, filename);
 	      printf("cache: rm = %s\n", rm);	// might have error here if root does not have a / at the end, so we print to know
 	      system(rm);
 	      // commented code below, since file_presentation should auto create link?
@@ -360,7 +360,7 @@ void refreshCache(){
 	  	  }
 	  	  sqlite3_finalize(res);
 	  	  strcpy(comm1, "");
-          sprintf(comm1, "rm '%s/%s/%s'", SHARE_LOC, root, filename);
+          sprintf(comm1, "rm '%s/%s%s'", SHARE_LOC, root, filename);
           printf("COMM1 (remove from share) = %s\n", comm1);
           //syslog(LOG_INFO, "CacheAccess: comm = %s\n", comm);
           system(comm);
