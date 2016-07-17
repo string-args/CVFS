@@ -7,7 +7,7 @@
 #include "../Global/global_definitions.h"
 #include "file_assembly.h"
 
-void assemble_cache_file(String filename){
+void assemble_cache_file(String filename, String root){
    char *err = 0;
 
    String files, comm, query, tempname;
@@ -26,7 +26,7 @@ void assemble_cache_file(String filename){
        memmove(filename, filename + strlen("part1."), 1 + strlen(filename + strlen("part1.")));
    }
 
-    sprintf(query, "SELECT filename, fileloc FROM VolContent WHERE filename LIKE 'part%c.%s'", percent,filename);
+    sprintf(query, "SELECT filename, fileloc FROM VolContent WHERE filename LIKE '%spart%c.%s'", root, percent,filename);
    // syslog(LOG_INFO, "VolumeManagement: query = %s\n", query);
 
    rc = sqlite3_open(DBNAME, &db);
@@ -36,20 +36,22 @@ void assemble_cache_file(String filename){
       exit(1);
    }
 
-   rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
-   if (rc != SQLITE_OK){
-      fprintf(stderr, "Didn't get any data.\n");
-      exit(1);
+   int good = 0;
+   while (!good){
+   	rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
+   	if (rc != SQLITE_OK){
+    		good = 0;
+   	} else {good = 1;}
    }
 
    strcpy(files, "");
    strcpy(assfile, "");
    while (sqlite3_step(res) == SQLITE_ROW){
 
-       if (strstr(sqlite3_column_text(res,0), "part1.") != NULL){
+       //if (strstr(sqlite3_column_text(res,0), "part1.") != NULL){
           //if file contains part1
-          strcpy(assfile, sqlite3_column_text(res,0)); //will be the filename
-       }
+       //   strcpy(assfile, sqlite3_column_text(res,0)); //will be the filename
+       //}
 
        String name;
        sprintf(name, "\"%s/%s\"", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
@@ -59,18 +61,21 @@ void assemble_cache_file(String filename){
    sqlite3_finalize(res);
    sqlite3_close(db);
    //printf("RANDOM!\n");
-   sprintf(comm, "cat %s > '%s/%s'", files, ASSEMBLY_LOC, assfile);
+   sprintf(comm, "cat %s > '%s/part1.%s'", files, ASSEMBLY_LOC, filename);
+   printf("COMM := %s\n", comm);
    //syslog(LOG_INFO, "VolumeManagement: comm = %s\n", comm);
 
   //syslog(LOG_INFO, "VolumeManagement: PART1 OF THE FILE: %s/%s", ftemploc,ftemp);
    system(comm);
    syslog(LOG_INFO, "VolumeManagement: Assembled File: %s/%s\n", ASSEMBLY_LOC, assfile);
 
-   String put_cache;
-   sprintf(put_cache, "mv '%s/%s' '%s/%s'", ASSEMBLY_LOC, assfile, CACHE_LOC, assfile);
+   String put_cache = "";
+   sprintf(put_cache, "mv '%s/part1.%s' '%s/part1.%s'", ASSEMBLY_LOC, filename, CACHE_LOC, filename);
    //syslog(LOG_INFO, "VolumeManagement: MV = %s\n", put_cache);
+   printf("PUT CACHE := %s\n", put_cache);
+
    system(put_cache);
-   syslog(LOG_INFO, "VolumeManagement: %s was put in cache.\n", assfile);
+   syslog(LOG_INFO, "VolumeManagement: part1.%s was put in cache.\n", filename);
 }
 
 void assemble(String filename){

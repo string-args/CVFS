@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     pthread_t t[THREADCNT];
     int i;
 
-    int flag = 1; //initial value of flag 
+    int flag = 0; //initial value of flag 
     FILE *fp = fopen("random.txt", "w");
     fprintf(fp, "%d", flag);
     fclose(fp);
