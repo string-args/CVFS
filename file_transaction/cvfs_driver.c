@@ -43,6 +43,11 @@ int main(int argc, char *argv[]) {
     pthread_t t[THREADCNT];
     int i;
 
+    int flag = 1; //initial value of flag 
+    FILE *fp = fopen("random.txt", "w");
+    fprintf(fp, "%d", flag);
+    fclose(fp);
+
     while(1) {
         //pthread_create(&t[0], NULL, create_link, NULL);
         pthread_create(&t[0], NULL, watch_temp, NULL);
