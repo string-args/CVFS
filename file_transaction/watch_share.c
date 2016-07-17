@@ -171,11 +171,11 @@ void *watch_share()
 
               if (event->mask & IN_OPEN){
                   if (event->mask & IN_ISDIR){
-                      
+
                   }else {
 			//printf("Linear file %s opened.\n", event->name);
                       if (strstr(event->name,"part1.") != NULL){
- 	
+
 			int k = 0;
 			for (k = 0; k < counter; k++){
 				if (wds[k] == event->wd){
@@ -187,7 +187,7 @@ void *watch_share()
 			//printf("FILENAME : %s opened.\n", event->name);
 			int flag;
                         FILE *fp = fopen("random.txt", "r");
-			fscanf(fp,"%d",&flag); 			
+			fscanf(fp,"%d",&flag);
 			fclose(fp);
 			printf("IN OPEN FLAG := %d\n", flag);
 			if (flag == 0){ //done striping continue with open event
@@ -208,9 +208,15 @@ void *watch_share()
                         }
                         if (!inCache){
 			    printf("Watch Share: Should be assembling file here....\n");
-
+                // assemble the file by getting parts from volumes
+                // take NOTE: assembly of file should only happen when all files are present
+                // (or when no file striping is happening)
+                // can this be determined with random.txt?
+                assemble(event->name);
 			    String assembled_file = "";
 			    sprintf(assembled_file, "%s/%s", ASSEMBLY_LOC, event->name);
+
+
 			    //printf("Assembled File: %s\n", assembled_file);
                             //assemble(event->name);
 			    //printf("Checking if assembled file exist...\n");
@@ -231,7 +237,7 @@ void *watch_share()
 
               if (event->mask & IN_CLOSE){
                   if (event->mask & IN_ISDIR){
- 
+
                   }else{
                       syslog(LOG_INFO, "FileTransaction: The file %s was closed.\n", event->name);
                       //printf("File %s closed.\n", event->name);
@@ -241,7 +247,7 @@ void *watch_share()
 				//printf("IN_CLOSE : %s | FILENAME : %s\n", dirs[k], event->name);
 				break;
 			}
-		      }		      
+		      }
 		      //strcpy(COMMANDS[COUNTER], "");
 		      //COUNTER++;
 		      //String original_file = "";
@@ -268,7 +274,7 @@ void *watch_share()
               }
 
               p += EVENT_SIZE + event->len;
-          
+
        }
 }
 
