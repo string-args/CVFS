@@ -313,6 +313,8 @@ void refreshCache(){
 	      //assemble_cache_file(filename);	// AIDZ PA CHECK YUNG TAMANG CALL SA PAG ASSEMBLE
               String rm = "";
           
+          // remove the part1, kasi sa share walang part1
+          memmove(filename, filename+strlen("part1."), 1+strlen(filename+strlen("part1.")));
 	      sprintf(rm, "rm '%s/%s%s'", SHARE_LOC, root, filename);
 	      printf("cache: rm = %s\n", rm);	// might have error here if root does not have a / at the end, so we print to know
 	      system(rm);
@@ -336,8 +338,6 @@ void refreshCache(){
 	  strcpy(filename, contents[i]);
 	  
        if (strcmp(filename, "") != 0){
-       // remove the part1? but why?, uncomment this line if we need to remove part1
-	  //memmove(filename, filename+strlen("part1."), 1+strlen(filename+strlen("part1.")));
 	  //printf("LAST LOOP : CONTENTS[%d] := %s\n", i, contents[i]);
           strcpy(comm, "");
           sprintf(comm, "rm '%s/%s'", CACHE_LOC, filename);
@@ -360,6 +360,7 @@ void refreshCache(){
 	  	  }
 	  	  sqlite3_finalize(res);
 	  	  strcpy(comm1, "");
+	  	  memmove(filename, filename+strlen("part1."), 1+strlen(filename+strlen("part1.")));
           sprintf(comm1, "rm '%s/%s%s'", SHARE_LOC, root, filename);
           printf("COMM1 (remove from share) = %s\n", comm1);
           //syslog(LOG_INFO, "CacheAccess: comm = %s\n", comm);
