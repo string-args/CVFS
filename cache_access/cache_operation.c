@@ -37,7 +37,7 @@ void incrementFrequency(String filename){
   while(!good) {
 	rc = sqlite3_exec(db, query, 0, 0, &errmsg);
 	if (rc != SQLITE_OK) {
-		//printf("db is locked\n");
+		printf("DB Error %s\n", sqlite3_errmsg(db));
 	} else {
 		printf("Increment Frequency for %s\n", filename);
 		good = 1;
@@ -69,7 +69,7 @@ void update_cache_list(String filename, String root){
    while (!good){
    	rc = sqlite3_exec(db, query, 0, 0, &errmsg);
    	if (rc != SQLITE_OK){
-      		good = 0;
+        printf("DB Error %s\n", sqlite3_errmsg(db));
    	} else {
 		good = 1;
 	}
@@ -146,7 +146,7 @@ void refreshCache(){
 	}
 
 	sprintf(query, "SELECT filename FROM CacheContent ORDER BY frequency DESC LIMIT %d", MAX_CACHE_SIZE);
-	
+
 	rc = sqlite3_open(DBNAME, &db);
 	if (rc != SQLITE_OK){
 		fprintf(stderr, "RefreshCache(): Can't open database %s\n", sqlite3_errmsg(db));
@@ -192,7 +192,7 @@ void refreshCache(){
 			if (sqlite3_step(res) == SQLITE_ROW){
 				strcpy(fileloc, sqlite3_column_text(res,0));
 			}
-			sqlite3_finalize(res);	
+			sqlite3_finalize(res);
 			String linkname = "", filename = "", source = "", dest = "";
 			strcpy(filename, cache_contents[i]);
 			memmove(filename,filename+strlen("part1."),1+strlen(filename+strlen("part1.")));
@@ -203,7 +203,7 @@ void refreshCache(){
 			system(rm);
 
 			printf("RM := %s\n", rm);
-			
+
 			sprintf(rm, "rm '%s/%s'", CACHE_LOC, cache_contents[i]);
 			system(rm);
 			printf("RM := %s\n", rm);
@@ -235,9 +235,9 @@ void refreshCache(){
 
     printf("\n\nLS CACHE_LOC\n");
     system("ls /mnt/CVFSCache");
-    printf("\n\n");    
+    printf("\n\n");
 
-  
+
     printf("COMM_OUT:=\n");
     strcpy(comm, "ls /mnt/CVFSCache");
     //sprintf(comm, "ls %s", CACHE_LOC);
@@ -245,7 +245,7 @@ void refreshCache(){
 
     system(comm);
     printf("\n\n");
-    
+
     runCommand(comm, comm_out);
     //strcpy(file_list, comm_out);
 
@@ -261,21 +261,21 @@ void refreshCache(){
       //printf("FILE LIST: %s\n", file_list);
 	//syslog(LOG_INFO, "CacheAccess: Checking file_list...\n");
     //store the filenames in contents struct
-    	
+
 	printf("Files in Cache...\n %s\n\n\n", comm_out);
 	char *pch = NULL;
     	pch = strtok(comm_out, "\n");
     	//syslog(LOG_INFO, "CacheAccess: Printing Cache Contents:\n");
     	int j = 0;
-      
+
         while (pch != NULL){
-       		strcpy(contents[j], pch);		
+       		strcpy(contents[j], pch);
        		//printf("PCH : CONTENTS[%d]: %s\n", j, contents[j]);
-       		j++;	
+       		j++;
        		pch = strtok(NULL, "\n");
     	}
     	// j now contains the total number of files in the cache folder
-    	
+
     //opens database
     //syslog(LOG_INFO, "CacheAccess: RefreshCache(): Opening database %s\n", DBNAME);
     rc = sqlite3_open(DBNAME, &db);
@@ -289,11 +289,11 @@ void refreshCache(){
     //this is another solution to the code below where you select mountpt where filename = filename
     //i did this because the database didn't unlock
     int good = 0;
-    sprintf(query, "SELECT filename, mountpt FROM CacheContent;");	
+    sprintf(query, "SELECT filename, mountpt FROM CacheContent;");
     while (!good){
 	rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
 	if (rc != SQLITE_OK){
-		//printf("db is locked\n");
+		printf("DB Error %s\n", sqlite3_errmsg(db));
 	} else {
 		good = 1;
 	}
@@ -312,7 +312,7 @@ void refreshCache(){
      while(!good) {
 	rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
 	if (rc != SQLITE_OK) {
-		//printf("db is locked\n");
+		printf("DB Error %s\n", sqlite3_errmsg(db));
 	} else {
 		good = 1;
 	}
@@ -326,7 +326,7 @@ void refreshCache(){
        strcpy(filename, sqlite3_column_text(res,0));
        strcpy(file, sqlite3_column_text(res,0));
        strcpy(root, sqlite3_column_text(res,1));
-     
+
 //       	printf("FILENAME := %s\n", filename);
        	   printf("Filename to be checked: %s In Cache or Not?\n", filename);
            if (inCache(contents, filename)){
@@ -335,13 +335,13 @@ void refreshCache(){
               syslog(LOG_INFO, "CacheAccess: %s not in cache, transfering...\n", filename);
               printf("Cache Access: Should be assembling file here...\n");
 	      //assemble_cache_file(filename);	// AIDZ PA CHECK YUNG TAMANG CALL SA PAG ASSEMBLE
-              String rm = "";          
+              String rm = "";
               // remove the part1, kasi sa share walang part1
 
 	      //String file_to_be_assembled = "";
 	      //sprintf(file_to_be_assembled, "%s%s", root, filename);
 	      assemble_cache_file(filename, root);
-	
+
               memmove(file, file+strlen("part1."), 1+strlen(file+strlen("part1.")));
 	      sprintf(rm, "rm '%s/%s%s'", SHARE_LOC, root, file);
 	      printf("cache: rm = %s\n", rm);	// might have error here if root does not have a / at the end, so we print to know
@@ -357,14 +357,14 @@ void refreshCache(){
     //sqlite3_close(db);
     String comm1 = "";
     //remove less frequent files
-    
+
 
    // rc = sqlite3_open(DBNAME, &db);
   //  if (rc != SQLITE_OK){
 //	fprintf(stderr, "RefreshCache() : Can't open database: %s\n", sqlite3_errmsg(db));
 //	sqlite3_close(db);
 	//exit(1);
-   // }    
+   // }
 
 	// check all the contents of cache folder (not necessarily of size MAX_CACHE_SIZE
     for (i = 0; i < CLISTSIZE; i++){
@@ -373,7 +373,7 @@ void refreshCache(){
 	//printf("CONTENTS[%d] := %s\n", i, contents[i]);
 	  String filename = "";
 	  strcpy(filename, contents[i]);
-	  
+
        if (strcmp(filename, "") != 0){
 	  //printf("LAST LOOP : CONTENTS[%d] := %s\n", i, contents[i]);
           strcpy(comm, "");
@@ -388,7 +388,7 @@ void refreshCache(){
 				strcpy(root, cache_roots[i]);
 				break;
 			}
-                  }	  	 
+                  }
 
 	  	  //sqlite3_finalize(res);
 	  	  strcpy(comm1, "");
