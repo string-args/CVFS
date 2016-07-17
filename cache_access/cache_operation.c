@@ -81,7 +81,7 @@ void update_cache_list(String filename, String root){
 //this function checks if a file is in cache or not
 int inCache(String *list, String file){
    int i;
-   for (i = 0; i < MAX_CACHE_SIZE; i++){
+   for (i = 0; i < 11; i++){
        //printf("CONTENTS[%d] := %s | file: %s\n", i, list[i], file);
        if (strcmp(list[i], file) == 0){
           strcpy(list[i], "");
@@ -232,15 +232,20 @@ void refreshCache(){
     //get the files in CVFSCache folder
 
     printf("\n\nLS CACHE_LOC\n");
-    system("ls -l /mnt/CVFSCache");
+    system("ls /mnt/CVFSCache");
     printf("\n\n");    
 
-
-
-    sprintf(comm, "ls %s", CACHE_LOC);
+  
+    printf("COMM_OUT:=\n");
+    strcpy(comm, "ls /mnt/CVFSCache");
+    //sprintf(comm, "ls %s", CACHE_LOC);
     //syslog(LOG_INFO, "CacheAccess: Comm = %s\n", comm);
+
+    system(comm);
+    printf("\n\n");
+    
     runCommand(comm, comm_out);
-    strcpy(file_list, comm_out);
+    //strcpy(file_list, comm_out);
 
     //printf("\nFiles in Cache: %s\n", file_list);
 
@@ -253,9 +258,9 @@ void refreshCache(){
 	//syslog(LOG_INFO, "CacheAccess: Checking file_list...\n");
     //store the filenames in contents struct
     	
-	printf("Files in Cache...\n %s", file_list);
+	printf("Files in Cache...\n %s\n\n\n", comm_out);
 	char *pch = NULL;
-    	pch = strtok(file_list, "\n");
+    	pch = strtok(comm_out, "\n");
     	//syslog(LOG_INFO, "CacheAccess: Printing Cache Contents:\n");
     	int j = 0;
       
@@ -275,8 +280,10 @@ void refreshCache(){
        sqlite3_close(db);
        exit(1);
     }
+
 	
 	// get the files that SHOULD be in the cache folder
+
     sprintf(query, "SELECT * FROM CacheContent ORDER BY frequency DESC LIMIT %d;", MAX_CACHE_SIZE);
     int good = 0;
      while(!good) {
@@ -308,7 +315,7 @@ void refreshCache(){
           
 	      sprintf(rm, "rm '%s/%s/%s'", SHARE_LOC, root, filename);
 	      printf("cache: rm = %s\n", rm);	// might have error here if root does not have a / at the end, so we print to know
-	      //system(rm);
+	      system(rm);
 	      // commented code below, since file_presentation should auto create link?
 	      create_link();		// uncommented already because its aidz code
               //create_link_cache(filename);
@@ -318,20 +325,26 @@ void refreshCache(){
     sqlite3_finalize(res);
     String comm1 = "";
     //remove less frequent files
-
+    
+    
 	// check all the contents of cache folder (not necessarily of size MAX_CACHE_SIZE
     for (i = 0; i < CLISTSIZE; i++){
        //syslog(LOG_INFO, "CacheAccess: i = %d :: contents = %s\n", i, contents[i]);
 	//printf("LOOP: contents[%d] := %s\n", i, contents[i]);
 	//printf("CONTENTS[%d] := %s\n", i, contents[i]);
-       if (strcmp(contents[i], "") != 0){
+		String filename = "";
+	  strcpy(filename, contents[i]);
+	  
+       if (strcmp(filename, "") != 0){
+       // remove the part1? but why?, uncomment this line if we need to remove part1
+	  //memmove(filename, filename+strlen("part1."), 1+strlen(filename+strlen("part1.")));
 	  //printf("LAST LOOP : CONTENTS[%d] := %s\n", i, contents[i]);
           strcpy(comm, "");
-          sprintf(comm, "rm '%s/%s'", CACHE_LOC, contents[i]);
+          sprintf(comm, "rm '%s/%s'", CACHE_LOC, filename);
 	  	  printf("COMM (rm from cache) = %s\n", comm);
 	  	  // get the root from cachecontent db, since all striped files are placed in the db, we can get it from db
 	  	  // verify that: filename in cache content == filename in /mnt/CVFSCache or query will not work properly
-	  	  sprintf(query, "SELECT mountpt FROM CacheContent WHERE filename = %s;", contents[i]);
+	  	  sprintf(query, "SELECT mountpt FROM CacheContent WHERE filename = %s;", filename);
 			good = 0;
 			while(!good) {
 				rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
@@ -347,13 +360,13 @@ void refreshCache(){
 	  	  }
 	  	  sqlite3_finalize(res);
 	  	  strcpy(comm1, "");
-          sprintf(comm1, "rm '%s/%s/%s'", SHARE_LOC, root, contents[i]);
+          sprintf(comm1, "rm '%s/%s/%s'", SHARE_LOC, root, filename);
           printf("COMM1 (remove from share) = %s\n", comm1);
           //syslog(LOG_INFO, "CacheAccess: comm = %s\n", comm);
           system(comm);
-          syslog(LOG_INFO, "CacheAccess: Removing %s in Cache...\n", contents[i]);
+          syslog(LOG_INFO, "CacheAccess: Removing %s in Cache...\n", filename);
 	  system(comm1);
-	  syslog(LOG_INFO, "CacheAccess: Removing %s in Share...\n", contents[i]);
+	  syslog(LOG_INFO, "CacheAccess: Removing %s in Share...\n", filename);
           //update link cache here....
 	   create_link();			// commented this, not sure if it is automatic, OK UNCOMMENTED BECAUSE AIDZ CODE
 	/*
