@@ -79,7 +79,7 @@ void update_cache_list(String filename, String root){
 //this function checks if a file is in cache or not
 int inCache(String *list, String file){
    int i;
-   for (i = 0; i < MAX_CACHE_SIZE; i++){
+   for (i = 0; i < 11; i++){
        //printf("CONTENTS[%d] := %s | file: %s\n", i, list[i], file);
        if (strcmp(list[i], file) == 0){
           strcpy(list[i], "");
@@ -230,20 +230,25 @@ void refreshCache(){
     //get the files in CVFSCache folder
 
     printf("\n\nLS CACHE_LOC\n");
-    system("ls -l /mnt/CVFSCache");
+    system("ls /mnt/CVFSCache");
     printf("\n\n");    
 
-
-
-    sprintf(comm, "ls %s", CACHE_LOC);
+  
+    printf("COMM_OUT:=\n");
+    strcpy(comm, "ls /mnt/CVFSCache");
+    //sprintf(comm, "ls %s", CACHE_LOC);
     //syslog(LOG_INFO, "CacheAccess: Comm = %s\n", comm);
+
+    system(comm);
+    printf("\n\n");
+    
     runCommand(comm, comm_out);
-    strcpy(file_list, comm_out);
+    //strcpy(file_list, comm_out);
 
     //printf("\nFiles in Cache: %s\n", file_list);
 
 
-        for (i = 0; i < MAX_CACHE_SIZE; i++){
+        for (i = 0; i < 11; i++){
            strcpy(contents[i], "");
         }
       //printf("Initialize array done!\n");
@@ -253,9 +258,9 @@ void refreshCache(){
 	//syslog(LOG_INFO, "CacheAccess: Checking file_list...\n");
     //store the filenames in contents struct
     	
-	printf("Files in Cache...\n %s", file_list);
+	printf("Files in Cache...\n %s\n\n\n", comm_out);
 	char *pch = NULL;
-    	pch = strtok(file_list, "\n");
+    	pch = strtok(comm_out, "\n");
     	//syslog(LOG_INFO, "CacheAccess: Printing Cache Contents:\n");
     	int j = 0;
       
@@ -276,7 +281,7 @@ void refreshCache(){
        exit(1);
     }
 
-    //sprintf(query, "SELECT * FROM CacheContent ORDER BY frequency DESC LIMIT %d;", MAX_CACHE_SIZE);
+    sprintf(query, "SELECT * FROM CacheContent ORDER BY frequency DESC LIMIT %d;", MAX_CACHE_SIZE);
     int good = 0;
      while(!good) {
 	rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
@@ -314,7 +319,7 @@ void refreshCache(){
     String comm1 = "";
     //remove less frequent files
 
-    for (i = 0; i < MAX_CACHE_SIZE; i++){
+    for (i = 0; i < 11; i++){
        //syslog(LOG_INFO, "CacheAccess: i = %d :: contents = %s\n", i, contents[i]);
 	//printf("LOOP: contents[%d] := %s\n", i, contents[i]);
 	//printf("CONTENTS[%d] := %s\n", i, contents[i]);
@@ -323,13 +328,17 @@ void refreshCache(){
           strcpy(comm, "");
           sprintf(comm, "rm '%s/%s'", CACHE_LOC, contents[i]);
 	  //printf("COMM = %s\n", comm);
-          sprintf(comm1, "rm '%s/%s'", SHARE_LOC, contents[i]);
+          
+          String filename = "";
+	  strcpy(filename, contents[i]);
+	  memmove(filename, filename+strlen("part1."), 1+strlen(filename+strlen("part1.")));
+	  sprintf(comm1, "rm '%s/%s'", SHARE_LOC, filename);
           //printf("COMM1 = %s\n", comm1);
           //syslog(LOG_INFO, "CacheAccess: comm = %s\n", comm);
           system(comm);
           syslog(LOG_INFO, "CacheAccess: Removing %s in Cache...\n", contents[i]);
 	  system(comm1);
-	  syslog(LOG_INFO, "CacheAccess: Removing %s in Share...\n", contents[i]);
+	  syslog(LOG_INFO, "CacheAccess: Removing %s in Share...\n", filename);
           //update link cache here....
 	  create_link();	
 	/*
