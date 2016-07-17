@@ -110,7 +110,7 @@ void assemble(String filename){
      memmove(filename, filename + strlen("part1."), 1 + strlen(filename + strlen("part1.")));
    }
 
-   // get the root (note to self: without / to ah huy!!! wag ka mag kamali)
+   // get the root (meron nang / sa dulo yun!!)
    rc = sqlite3_open(DBNAME, &db);
    if (rc != SQLITE_OK){
       fprintf(stderr, "File Assembly: Can't open database: %s\n", sqlite3_errmsg(db));
@@ -134,7 +134,7 @@ void assemble(String filename){
 
 
    /*Look for all the fileparts in the database. part<number>.<filename>*/
-   sprintf(query, "SELECT filename, fileloc FROM VolContent WHERE filename LIKE '%s/part%c.%s'", root, percent, filename);
+   sprintf(query, "SELECT filename, fileloc FROM VolContent WHERE filename LIKE '%spart%c.%s'", root, percent, filename);
    printf("file assembly::: finding parts query: %s\n", query);
 
    rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
