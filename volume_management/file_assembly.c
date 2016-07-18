@@ -173,7 +173,7 @@ void assemble(String filename){
     }
     sqlite3_finalize(res);
 
-   sprintf(comm, "cat %s > '%s/%s'", files, ASSEMBLY_LOC, assfile);
+   sprintf(comm, "cat %s > '%s/part1.%s'", files, ASSEMBLY_LOC, filename);
    printf("COMM := %s\n", comm);
 
 	// syslog(LOG_INFO, "VolumeManagement: comm = %s\n", comm);
