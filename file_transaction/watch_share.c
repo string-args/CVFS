@@ -208,13 +208,30 @@ void *watch_share()
                         }
                         if (!inCache){
 			    printf("Watch Share: Should be assembling file here....\n");
-                // assemble the file by getting parts from volumes
+                
+		FILE *fp1 = fopen("assembled.txt", "rb");
+                String file = "";
+		int check = 0;
+		String line = "";
+		strcpy(file, event->name);
+                strcat(file, "\n");
+                while (fgets(line, sizeof(file), fp1) != NULL){
+			printf("LINE := %s | FILENAME := %s\n", line, event->name);
+			if (strcmp(line, file) == 0){
+				printf("SAME FILE := \n");
+				check = 1;
+				break;
+			}
+		}
+		fclose(fp1);
+		if (!check){
+		// assemble the file by getting parts from volumes
                 // take NOTE: assembly of file should only happen when all files are present
                 // (or when no file striping is happening)
                 // can this be determined with random.txt?
-                assemble(event->name);
-			    String assembled_file = "";
-			    sprintf(assembled_file, "%s/%s", ASSEMBLY_LOC, event->name);
+                assemble(event->name);}
+			    //String assembled_file = "";
+			    //sprintf(assembled_file, "%s/%s", ASSEMBLY_LOC, event->name);
 
 
 			    //printf("Assembled File: %s\n", assembled_file);
@@ -266,6 +283,44 @@ void *watch_share()
 		      fclose(fp);
 		      printf("IN CLOSE FLAG := %d\n", flag);
 		      if (flag == 0) { //done striping
+
+			String comm = "", comm_out = "";
+			int inCache = 0;
+			strcpy(comm, "ls /mnt/CVFSCache");
+			runCommand(comm, comm_out);
+
+			char *pch = strtok(comm_out, "\n");
+			while (pch != NULL){
+				if (strcmp(pch, event->name) == 0){
+					inCache = 1;
+					break;
+				}
+				pch = strtok(NULL, "\n");
+			}
+
+			if (!inCache){
+				//check if file already assembled
+				FILE *fp = fopen("assembled.txt", "rb");
+				String line = "";
+				String file = "";
+				int assembled = 0;
+				strcpy(file, event->name);
+				strcat(file, "\n");
+				while (fgets(line, sizeof(file), fp) != NULL){
+					printf("LINE := %s | FILE := %s\n", line, event->name);
+					if (strcmp(line, file) == 0){
+						assembled = 1;
+						break;
+					}
+				}
+				fclose(fp);
+
+				if (assembled){
+		    			printf("File has been closed\n");
+					disassemble(event->name);
+				}
+			}
+
                       	if (strstr(event->name, "part1.") != NULL){
                         	   refreshCache();
                       	}

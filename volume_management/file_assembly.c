@@ -75,6 +75,11 @@ void assemble_cache_file(String filename, String root){
    printf("PUT CACHE := %s\n", put_cache);
 
    system(put_cache);
+
+   //String remove = "";
+   //sprintf(remove, "rm '%s/part1.%s'", ASSEMBLY_LOC, filename);
+   //system(remove);
+
    syslog(LOG_INFO, "VolumeManagement: part1.%s was put in cache.\n", filename);
 }
 
@@ -106,9 +111,9 @@ void assemble(String filename){
    /*remove part1. in the filename*/
    /*ex: part1.DOTS.mkv = DOTS.mkv*/
    // remove part1 from filename
-   if (strstr(filename, "part1.") != NULL){
-     memmove(filename, filename + strlen("part1."), 1 + strlen(filename + strlen("part1.")));
-   }
+   //if (strstr(filename, "part1.") != NULL){
+   //  memmove(filename, filename + strlen("part1."), 1 + strlen(filename + strlen("part1.")));
+   //}
 
    // get the root (meron nang / sa dulo yun!!)
    rc = sqlite3_open(DBNAME, &db);
@@ -117,7 +122,7 @@ void assemble(String filename){
       sqlite3_close(db);
       exit(1);
    }
-   sprintf(query, "SELECT mountpt from CacheContent WHERE filename=%s", filename);
+   sprintf(query, "SELECT mountpt from CacheContent WHERE filename='%s'", filename);
    rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
    int good = 0;
    while (!good){
@@ -132,10 +137,15 @@ void assemble(String filename){
     }
     sqlite3_finalize(res);
 
+	printf("ROOT := %s\n", root);
+
+    if (strstr(filename, "part1.") != NULL){
+	memmove(filename, filename+strlen("part1."), 1+strlen(filename+strlen("part1.")));
+    }
 
    /*Look for all the fileparts in the database. part<number>.<filename>*/
    sprintf(query, "SELECT filename, fileloc FROM VolContent WHERE filename LIKE '%spart%c.%s'", root, percent, filename);
-   printf("file assembly::: finding parts query: %s\n", query);
+   printf("\n\n\nfile assembly::: finding parts query: %s\n\n\n\n", query);
 
    rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
    good = 0;
@@ -195,6 +205,14 @@ void assemble(String filename){
    system(cp);
    system(mv);
 
+   //String remove = "";
+   //sprintf(remove, "rm %s/%s", ASSEMBLY_LOC, assfile);
+   //system(remove);
+
+   FILE *fp1 = fopen("../file_transaction/assembled.txt", "a");
+   fprintf(fp1, "%s\n", tempname);
+   fclose(fp1);
+
    // if (sqlite3_step(res) == SQLITE_ROW){
    //    String mv = "", cp = "";
    //    //copy original part1 of file to CVFStore folder
@@ -218,4 +236,74 @@ void assemble(String filename){
   // system(comm1);
 
    sqlite3_close(db);
+}
+
+void disassemble(String filename){
+
+	sqlite3 *db;
+	sqlite3_stmt *res;
+	const char *tail;
+	int rc;
+
+        printf("IN DISASSEMBLE!\n");
+	rc = sqlite3_open(DBNAME, &db);
+	if (rc != SQLITE_OK){
+		fprintf(stderr, "Can't open database %s!\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+		exit(1);
+	}
+
+
+	String query = "", root = "";
+	sprintf(query, "Select mountpt from CacheContent where filename = '%s';", filename);
+	int good = 0;
+	while (!good){
+		rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
+		if (rc != SQLITE_OK){
+			printf("Disassemble: SQL Error: %s\n", sqlite3_errmsg(db));
+		}else {good = 1;}
+	}
+	if (sqlite3_step(res) == SQLITE_ROW){
+		strcpy(root, sqlite3_column_text(res,0)); 
+	}
+	sqlite3_finalize(res);
+
+	String volume = "";
+	sprintf(query, "Select fileloc from VolContent where filename = '%s%s'", root, filename);
+	good = 0;
+        printf("Root := %s\n", root);
+	while (!good){
+		rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
+		if (rc != SQLITE_OK){
+			printf("Disassemble: SQL Error: %s\n", sqlite3_errmsg(db));
+		} else {good = 1;}
+	}
+	if (sqlite3_step(res) == SQLITE_ROW){
+		strcpy(volume, sqlite3_column_text(res,0));
+	}
+        printf("VOLUME := %s\n", volume);
+	sqlite3_finalize(res);
+	//sqlite3_close(db);
+
+	String mv = "";
+	sprintf(mv, "mv '%s/%s' '%s/%s%s'", STORAGE_LOC, filename, volume, root, filename);
+	printf("Disassemble MV := %s\n", mv);
+	system(mv);
+	sqlite3_close(db);
+
+	FILE *fp1 = fopen("../file_transaction/assembled.txt", "rb");
+        FILE *fp2 = fopen("../file_transaction/disassembled.txt", "ab");
+        String line = "";
+        while (fgets(line, sizeof(line), fp1) != NULL){
+		String compare = "";
+		strcpy(compare, filename);
+		strcat(compare, "\n");
+		if (strcmp(compare, line) != 0){ //remove assembled file from assembled txt
+			fprintf(fp2, "%s", line);
+		}
+	}
+	fclose(fp1);
+	fclose(fp2);
+	system("mv '../file_transaction/disassembled.txt' '../file_transaction/assembled.txt'");
+	printf("Disassembly done!\n");
 }

@@ -45,8 +45,16 @@ void update_target_size(sqlite3 *db, String filename, const char* fileloc){
        sprintf(sql, "UPDATE Target SET avspace = %lf WHERE mountpt = '%s';", avspace, fileloc);
     }
     // sqlite3_finalize(res);
-    rc = sqlite3_exec(db, sql, 0, 0, &err);
-    //syslog(LOG_INFO, "VolumeManagement: sql for update size: %s\n", sql);
+
+    int good = 0;
+    while (!good){
+    	rc = sqlite3_exec(db, sql, 0, 0, &err);
+    	if (rc != SQLITE_OK){
+		printf("Update Target: SQL Error: %s\n", sqlite3_errmsg(db));
+	} else {good = 1;}
+    }
+	
+	//syslog(LOG_INFO, "VolumeManagement: sql for update size: %s\n", sql);
     if (rc != SQLITE_OK){
        fprintf(stderr, "SQL Error: %s\n", err);
        sqlite3_free(err);
@@ -82,6 +90,7 @@ void update_list(sqlite3 *db, String filename, const char* fileloc){
     	rc = sqlite3_exec(db, sql, 0, 0, &err);
     	if (rc != SQLITE_OK){
        		good = 0;
+		printf("Update List: SQL Error: %s\n", sqlite3_errmsg(db));
     	} else {
 		good = 1;
 	}
@@ -107,35 +116,37 @@ void file_map(String fullpath, String filename){
     strcpy(sql, "SELECT avspace, mountpt FROM TARGET WHERE avspace = (SELECT max(avspace) from Target);");
 
     rc = sqlite3_open(DBNAME, &db); /*Open database*/
-
     if (rc != SQLITE_OK){
        fprintf(stderr, "File Mapping: Can't open database: %s\n", sqlite3_errmsg(db));
        sqlite3_close(db);
        exit(1);
     }
 
+    printf("IN FILE_MAP FUNCTION!\n");
     int good = 0;
      while(!good) {
 	rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
 	if (rc != SQLITE_OK) {
 		//printf("db is locked\n");
+		printf("FILE MAP: SQL Error: %s\n", sqlite3_errmsg(db));
 	} else {
 		good = 1;
 	}
       }
     
-
+    printf("DONE WITH LOOP:!\n");
     if(sqlite3_step(res) == SQLITE_ROW){
        syslog(LOG_INFO, "VolumeManagement: File %s is redirected to %s.\n", filename, sqlite3_column_text(res,1));
        sprintf(comm, "mv '%s' '%s/%s'", fullpath, sqlite3_column_text(res,1), filename);
        system(comm);
 	//this part update the entry of the file to volcontent table
+       printf("Updating VolContent!\n");
        update_list(db, filename, sqlite3_column_text(res,1));
     }
 
-
     sqlite3_finalize(res);
     sqlite3_close(db);
+    printf("Done with File map!\n");
 }
 
 void file_map_cache(String filename, String event_name){
@@ -167,7 +178,7 @@ void file_map_cache(String filename, String event_name){
     //}
     //fclose(fp);
 
-    create_link();
+    //create_link();
     //sprintf(source, "%s/%s", TEMP_LOC, filename);
 //    sprintf(source, "%s/part1.%s", CACHE_LOC, event_name);
 //    sprintf(dest, "%s/%s", SHARE_LOC, filename);
