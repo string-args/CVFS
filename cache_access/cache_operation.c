@@ -39,7 +39,7 @@ void incrementFrequency(String filename){
 	if (rc != SQLITE_OK) {
 		printf("DB Error %s\n", sqlite3_errmsg(db));
 	} else {
-		printf("Increment Frequency for %s\n", filename);
+		//printf("Increment Frequency for %s\n", filename);
 		good = 1;
 	}
    }
@@ -230,21 +230,21 @@ void refreshCache(){
     String cache_files[CLISTSIZE];
     String cache_roots[CLISTSIZE];
 
-    printf("REFRESH CACHE\n");
+    //printf("REFRESH CACHE\n");
     //get the files in CVFSCache folder
 
-    printf("\n\nLS CACHE_LOC\n");
-    system("ls /mnt/CVFSCache");
-    printf("\n\n");
+    //printf("\n\nLS CACHE_LOC\n");
+    //system("ls /mnt/CVFSCache");
+    //printf("\n\n");
 
 
-    printf("COMM_OUT:=\n");
+    //printf("COMM_OUT:=\n");
     strcpy(comm, "ls /mnt/CVFSCache");
     //sprintf(comm, "ls %s", CACHE_LOC);
     //syslog(LOG_INFO, "CacheAccess: Comm = %s\n", comm);
 
-    system(comm);
-    printf("\n\n");
+    //system(comm);
+    //printf("\n\n");
 
     runCommand(comm, comm_out);
     //strcpy(file_list, comm_out);
@@ -262,7 +262,7 @@ void refreshCache(){
 	//syslog(LOG_INFO, "CacheAccess: Checking file_list...\n");
     //store the filenames in contents struct
 
-	printf("Files in Cache...\n %s\n\n\n", comm_out);
+	//printf("Files in Cache...\n %s\n\n\n", comm_out);
 	char *pch = NULL;
     	pch = strtok(comm_out, "\n");
     	//syslog(LOG_INFO, "CacheAccess: Printing Cache Contents:\n");
@@ -293,7 +293,7 @@ void refreshCache(){
     while (!good){
 	rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
 	if (rc != SQLITE_OK){
-		printf("DB Error %s\n", sqlite3_errmsg(db));
+		//printf("DB Error %s\n", sqlite3_errmsg(db));
 	} else {
 		good = 1;
 	}
@@ -312,7 +312,7 @@ void refreshCache(){
      while(!good) {
 	rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
 	if (rc != SQLITE_OK) {
-		printf("DB Error %s\n", sqlite3_errmsg(db));
+		//printf("DB Error %s\n", sqlite3_errmsg(db));
 	} else {
 		good = 1;
 	}
@@ -328,7 +328,7 @@ void refreshCache(){
        strcpy(root, sqlite3_column_text(res,1));
 
 //       	printf("FILENAME := %s\n", filename);
-       	   printf("Filename to be checked: %s In Cache or Not?\n", filename);
+       	   //printf("Filename to be checked: %s In Cache or Not?\n", filename);
            if (inCache(contents, filename)){
               syslog(LOG_INFO, "CacheAccess: %s is already in cache.\n", filename);
            } else{
@@ -344,7 +344,9 @@ void refreshCache(){
 
               memmove(file, file+strlen("part1."), 1+strlen(file+strlen("part1.")));
 	      sprintf(rm, "rm '%s/%s%s'", SHARE_LOC, root, file);
-	      printf("cache: rm = %s\n", rm);	// might have error here if root does not have a / at the end, so we print to know
+	      //printf("cache: rm = %s\n", rm);	// might have error here if root does not have a / at the end, so we print to know
+	      
+              printf("[-] %s: %s%s", SHARE_LOC, root, file);
 	      system(rm);
 
 	      // commented code below, since file_presentation should auto create link?

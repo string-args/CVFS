@@ -24,10 +24,13 @@
 #define BUF_LEN  ( MAX_EVENTS * ( EVENT_SIZE + LEN_NAME )) /*buffer to store the data of events*/
 
 #define MAX_WTD 200 //max is 200 watches, assumed
+#define MAX_DEPTH 30
+#define TARGET_NUM 30
 
 //THIS FUNCTION ADD A WATCH TO ALL DIRECTORIES AND SUBDIRECTORIES
 //THAT ARE ALREADY WRITTEN
 void list_dir(String dir_to_read, int fd, int wds[], String dirs[], int counter){
+    //counter++;
     struct dirent *de;
 
     DIR *dr = opendir(dir_to_read);
@@ -41,22 +44,151 @@ void list_dir(String dir_to_read, int fd, int wds[], String dirs[], int counter)
 	String subdir = "";
 	sprintf(subdir, "%s/%s", dir_to_read, de->d_name);
 	stat(subdir, &s);
-	if (S_ISDIR(s.st_mode)){
-		if (strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0) {
-			int wd = inotify_add_watch(fd, subdir, IN_ALL_EVENTS);
-			wds[counter] = wd;
-			strcpy(dirs[counter], subdir);
-			counter++;
 
-			if (wd == -1){
-			}else{
-				syslog(LOG_INFO, "FileTransaction: READ := Watching:: %s\n", subdir);
+	switch(s.st_mode & S_IFMT){
+		case S_IFDIR: 
+		if (strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0) {
+
+			//since its loop constantly checks the share
+			//if a link of folder has been linked
+			if (strstr(subdir, "/mnt/Share") != NULL){	
+				int wd = inotify_add_watch(fd, subdir, IN_DELETE);
+				//printf("subdir: %s\n", subdir);
+				//printf("subdir: %s | counter: %d\n", subdir, counter);
+				if (wd != -1){
+					//printf("subdir: %s\n", subdir);
+					wds[counter] = wd;
+					strcpy(dirs[counter], subdir);
+					counter++;
+				}
+			} else {
+
+				int wd = inotify_add_watch(fd, subdir, IN_ALL_EVENTS);
+				//wds[counter] = wd;
+				//strcpy(dirs[counter], subdir);
+				//counter++;
+
+				if (wd == -1){
+				}else{
+					syslog(LOG_INFO, "FileTransaction: READ := Watching:: %s\n", subdir);
+					wds[counter] = wd;
+					strcpy(dirs[counter], subdir);
+					counter++;
+				}
+				
 			}
-			list_dir(subdir,fd, wds, dirs, counter);
+			list_dir(subdir, fd, wds, dirs, counter);
 		}
+		break;
 	}
     }
     closedir(dr);
+}
+
+void delete_linear_file(String root, String file){
+
+	String fullpath;
+	sprintf(fullpath, "%s/%s", root, file);
+
+
+
+	printf("Full path: %s\n", fullpath);
+
+	if (strstr(fullpath, "/mnt/Share") != NULL)
+		memmove(fullpath, fullpath + strlen("/mnt/Share/"), 1 + strlen(fullpath + strlen("/mnt/Share/")));
+
+	//printf("Fullpath after: %s\n", fullpath);
+
+	//get file information in volcontent;
+	sqlite3 *db;
+	sqlite3_stmt *res;
+	const char *tail;
+	int rc;
+	String query = "", filename = "", fileloc = "";
+	double filesize;
+	sprintf(query, "SELECT filename, fileloc, filesize FROM VOLCONTENT WHERE filename = '%s';", fullpath);
+	
+	printf("query1 = %s\n", query);
+
+	rc = sqlite3_open(DBNAME, &db);
+	if (rc != SQLITE_OK){
+		fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+		exit(1);
+	}
+
+	int good = 0;
+	while (!good){
+		rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
+		if (rc != SQLITE_OK){
+		} else {good = 1;}
+	}
+
+	if (sqlite3_step(res) == SQLITE_ROW){
+		strcpy(filename, sqlite3_column_text(res,0));
+		strcpy(fileloc, sqlite3_column_text(res,1));
+		filesize = sqlite3_column_double(res,2);
+
+		printf("filename: %s | fileloc %s | filesize %lf\n", filename, fileloc, filesize);
+	}
+	sqlite3_finalize(res);
+
+	//update target size here
+	sqlite3_stmt *res2;
+	sprintf(query, "SELECT avspace FROM target where mountpt = '%s';", fileloc);
+	printf("query2 = %s\n", query);
+	double avspace = 0.0;
+	good = 0;
+	while (!good){
+		rc = sqlite3_prepare_v2(db, query, 1000, &res2, &tail);
+		if (rc != SQLITE_OK){
+		} else {good = 1;}
+	}
+
+	if (sqlite3_step(res2) == SQLITE_ROW){
+		avspace = sqlite3_column_double(res2,0);
+	
+		printf("fileloc: %s | avspace: %lf\n", fileloc, sqlite3_column_double(res2,0));
+	}
+	sqlite3_finalize(res2);
+
+	//update avspace
+	avspace = avspace + filesize;
+
+	sprintf(query, "Update Target set avspace = %lf where mountpt = '%s';", avspace, fileloc);
+	
+	printf("query3 = %s\n", query);
+
+	good = 0;
+	while (!good){
+		rc = sqlite3_exec(db, query, 0, 0, 0);
+		if (rc != SQLITE_OK){
+		} else {good = 1;}
+	}
+
+	//after updating avspace, delete it from volcontent table
+	sprintf(query, "Delete from volcontent where filename = '%s';", filename);
+
+	printf("query4 = %s\n", query);
+
+	good = 0;
+	while (!good){
+		rc = sqlite3_exec(db, query, 0, 0, 0);
+		if (rc != SQLITE_OK){
+		} else {good = 1;}
+	}
+
+	//delete the actual file from target;
+	String rm = "";
+	sprintf(rm, "rm '%s/%s'", fileloc, filename);
+
+	printf("query5 = %s\n", rm);
+
+	if (system(rm) == 0)
+        	printf("[-] %s: %s\n", fileloc, filename);
+
+	//close db
+	sqlite3_close(db);
 }
 
 void *watch_share()
@@ -68,10 +200,15 @@ void *watch_share()
     int r_count = 1;
     char *p;
     char buffer[BUF_LEN] __attribute__ ((aligned(8)));
-    int counter = 0;
+
+    
+    String targets[TARGET_NUM];
+    int target_num = 0;
+
+    int c = 0;
     int wds[MAX_WTD];
     String dirs[MAX_WTD];
-
+    //int trigger[MAX_WTD];
 
     String query;
 
@@ -101,34 +238,44 @@ void *watch_share()
        perror( "Couldn't initialize inotify" );
     }
 
-   list_dir(TEMP_LOC, fd, wds, dirs, counter);
+   //list_dir(TEMP_LOC, fd, wds, dirs, counter); 
+   //list_dir(SHARE_LOC, fd, wds, dirs, counter); //for delete function
 
    //printf("HELLO!!!\n");
     while (sqlite3_step(res) == SQLITE_ROW){
-       wd = inotify_add_watch(fd, sqlite3_column_text(res,0), IN_CREATE | IN_OPEN | IN_CLOSE);
-       wds[counter] = wd;
-       strcpy(dirs[counter], sqlite3_column_text(res,0));
-       counter++;
-       if (wd == -1){
-          syslog(LOG_INFO, "FileTransaction: Couldn't add watch to %s\n", sqlite3_column_text(res,0));
-       } else {
-          syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", sqlite3_column_text(res,0));
-       }
-
-       //Check each target for directory
-       String dir_to_read = "";
-       strcpy(dir_to_read, sqlite3_column_text(res,0));
-       list_dir(dir_to_read, fd, wds, dirs, counter);
-
+        strcpy(targets[target_num], sqlite3_column_text(res,0));
+	target_num++;
     }
+    sqlite3_finalize(res);
+
+   int ti = 0;
+   for (ti = 0; ti < target_num; ti++){
+	wd = inotify_add_watch(fd, targets[ti], IN_CREATE | IN_OPEN | IN_CLOSE);
+	wds[c] = wd;
+	strcpy(dirs[c], targets[ti]);
+	c++;
+	list_dir(targets[ti], fd, wds, dirs, c);
+   }
 
    wd = inotify_add_watch(fd, CACHE_LOC, IN_OPEN | IN_CLOSE);
-   wds[counter] = wd;
-   strcpy(dirs[counter], CACHE_LOC);
-   counter++;
+   wds[c] = wd;
+   strcpy(dirs[c], CACHE_LOC);
+   c++;
    if (wd != -1){
     	syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", CACHE_LOC);
    }
+
+   wd = inotify_add_watch(fd, SHARE_LOC, IN_DELETE);
+   wds[c] = wd;
+   strcpy(dirs[c], SHARE_LOC);
+   c++;
+   if (wd != -1){
+	syslog(LOG_INFO, "FileTransaction: Watching:: %s\n", SHARE_LOC);
+   }
+
+   //list_dir(TEMP_LOC, fd, wds, dirs, c);
+   //c+=2;
+   //list_dir(SHARE_LOC, fd, wds, dirs, c);
 
     /*do it forever*/
     for(;;){
@@ -139,6 +286,8 @@ void *watch_share()
           perror("read");
        }
 
+     list_dir(SHARE_LOC, fd, wds, dirs, c);
+
      for(p = buffer; p < buffer + length;){
            struct inotify_event *event = (struct inotify_event *) p;
 	     if (event->mask & IN_CREATE){
@@ -147,26 +296,63 @@ void *watch_share()
 		      int i = 0;
 
       		      for (i = 0; i < size; i++){
+			   //printf("WDS[%d]: %d | DIRS[%d]: %s\n", i, wds[i], i, dirs[i]);
      			   if (wds[i] == event->wd){
 				if (strstr(dirs[i], "/mnt/Share") == NULL){
+				   
 				   String add_watch_dir = "";
 				   sprintf(add_watch_dir, "%s/%s", dirs[i], event->name);
 				   int wd = inotify_add_watch(fd, add_watch_dir, IN_ALL_EVENTS);
 				   if (wd == -1){
 
 				   } else {
-					printf("READ := Watching := %s\n", add_watch_dir);
+					syslog(LOG_INFO, "FileTransaction: Watching := %s\n", add_watch_dir);
+					//printf("READ := Watching := %s\n", add_watch_dir);
 				   }
 
-				   wds[counter] = wd;
-				   strcpy(dirs[counter], add_watch_dir);
-				   counter++;
+				   wds[c] = wd;
+				   //trigger[c] = event->wd;
+				   strcpy(dirs[c], add_watch_dir);
+				   c++; 	
 			        }
 			      break;
 			   }
 		      }
 		  } else {
 		  }
+	     }
+
+	     if (event->mask & IN_DELETE){
+		if (event->mask & IN_ISDIR){
+
+		} else {
+			//printf("Delete event: %s\n", event->name);
+			String root = "";
+			String arr[MAX_DEPTH];
+			int n = sizeof(wds) / sizeof(wds[0]);
+			int d, i, rooti;
+			
+			for (d = 0; d < MAX_DEPTH; d++){
+				strcpy(arr[d], "");
+			}
+
+			//get_roots(wds, trigger, dirs, c, event->wd, arr);
+			for (d = 1; d < c; d++){
+				if (strcmp(arr[d], "") != 0){
+					strcat(root, arr[d]);
+					strcat(root, "/");
+				}
+			}
+
+			for (d = 0; d < MAX_WTD; d++){
+				if (wds[d] == event->wd){
+					printf("[-] %s: %s/%s\n", SHARE_LOC, dirs[d], event->name);
+					
+					delete_linear_file(dirs[d], event->name);
+					break;
+				}
+			}
+		}
 	     }
 
               if (event->mask & IN_OPEN){
@@ -177,7 +363,7 @@ void *watch_share()
                       if (strstr(event->name,"part1.") != NULL){
 
 			int k = 0;
-			for (k = 0; k < counter; k++){
+			for (k = 0; k < c; k++){
 				if (wds[k] == event->wd){
 					//printf("IN OPEN : %s | FILENAME : %s\n", dirs[k], event->name);
 					break;
@@ -189,7 +375,7 @@ void *watch_share()
                         FILE *fp = fopen("random.txt", "r");
 			fscanf(fp,"%d",&flag);
 			fclose(fp);
-			printf("IN OPEN FLAG := %d\n", flag);
+			//printf("IN OPEN FLAG := %d\n", flag);
 			if (flag == 0){ //done striping continue with open event
                         incrementFrequency(event->name);
                         String comm = "", comm_out = "";
@@ -207,7 +393,7 @@ void *watch_share()
 			     ptr = strtok(NULL, "\n");
                         }
                         if (!inCache){
-			    printf("Watch Share: Should be assembling file here....\n");
+			    //printf("Watch Share: Should be assembling file here....\n");
                 
 		FILE *fp1 = fopen("assembled.txt", "rb");
                 String file = "";
@@ -216,9 +402,9 @@ void *watch_share()
 		strcpy(file, event->name);
                 strcat(file, "\n");
                 while (fgets(line, sizeof(file), fp1) != NULL){
-			printf("LINE := %s | FILENAME := %s\n", line, event->name);
+			//printf("LINE := %s | FILENAME := %s\n", line, event->name);
 			if (strcmp(line, file) == 0){
-				printf("SAME FILE := \n");
+				//printf("SAME FILE := \n");
 				check = 1;
 				break;
 			}
@@ -259,7 +445,7 @@ void *watch_share()
                       syslog(LOG_INFO, "FileTransaction: The file %s was closed.\n", event->name);
                       //printf("File %s closed.\n", event->name);
 		      int k = 0;
-		      for (k = 0; k < counter; k++){
+		      for (k = 0; k < c; k++){
 			if (wds[k] == event->wd){
 				//printf("IN_CLOSE : %s | FILENAME : %s\n", dirs[k], event->name);
 				break;
@@ -281,7 +467,7 @@ void *watch_share()
 		      FILE *fp = fopen("random.txt", "rb");
 		      fscanf(fp, "%d", &flag);
 		      fclose(fp);
-		      printf("IN CLOSE FLAG := %d\n", flag);
+		      //printf("IN CLOSE FLAG := %d\n", flag);
 		      if (flag == 0) { //done striping
 
 			String comm = "", comm_out = "";
@@ -307,7 +493,7 @@ void *watch_share()
 				strcpy(file, event->name);
 				strcat(file, "\n");
 				while (fgets(line, sizeof(file), fp) != NULL){
-					printf("LINE := %s | FILE := %s\n", line, event->name);
+					//printf("LINE := %s | FILE := %s\n", line, event->name);
 					if (strcmp(line, file) == 0){
 						assembled = 1;
 						break;
@@ -336,6 +522,6 @@ void *watch_share()
     /* Clean up */
     inotify_rm_watch(fd, wd);
     close(fd);
-    sqlite3_finalize(res);
+    //sqlite3_finalize(res);
     sqlite3_close(db);
 }

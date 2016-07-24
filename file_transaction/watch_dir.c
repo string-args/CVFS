@@ -154,6 +154,8 @@ void *watch_temp()
                      sprintf(dir_to_watch,"%s/%s%s/", TEMP_LOC, root, event->name);
 		     wd = inotify_add_watch(fd, dir_to_watch, IN_ALL_EVENTS);
 
+		     printf("Write: wd = %d | subdir: %s | counter: %d\n", wd, dir_to_watch, counter);
+
                      if (wd == -1){
 
 		     } else {
@@ -172,12 +174,17 @@ void *watch_temp()
 		     sprintf(dir, "mkdir '%s/%s'", SHIT_STORAGE, event->name);
 		     system(dir);
 
-                    sprintf(chmod, "chmod 777 -R '%s/%s'", SHIT_STORAGE, event->name);
-		    system(chmod);
+                     sprintf(chmod, "chmod 777 -R '%s/%s'", SHIT_STORAGE, event->name);
+		     system(chmod);
 
 		     sprintf(sors, "%s/%s", SHIT_STORAGE, event->name);
 		     sprintf(dest, "%s/%s", SHARE_LOC, x);
-		     symlink(sors,dest);
+		     
+		     if (symlink(sors,dest) == 0){
+			  printf("[+] %s: %s\n", SHARE_LOC, x);
+		     }else {
+
+		     }
 	         /******************************************************************************/
 		     make_folder(x);
 		     counter++;
@@ -220,14 +227,14 @@ void *watch_temp()
                          //check if stripe file
                         if (sz > STRIPE_SIZE){
                            //before striping, check cache
-			   printf("STRIPED: %s | SIZE : %ld bytes\n", event->name, sz);
+			   //printf("STRIPED: %s | SIZE : %ld bytes\n", event->name, sz);
                            //printf("%s will be striped.\n", event->name);
 			   //printf("Inserting into CacheContent...\n");
                            update_cache_list(event->name, root);
                            //printf("Cache Count: %d\n", getCacheCount());
                           // if (getCacheCount() < MAX_CACHE_SIZE) { //max cache size is 10
-                           printf("Cache Size: %d\n", getCacheCount());
-			   printf("%s will be put to cache.\n", filename);
+                           //printf("Cache Size: %d\n", getCacheCount());
+			   //printf("%s will be put to cache.\n", filename);
                            file_map_cache(filename, event->name);
                              //create_link_cache(filename);
                           // }
@@ -247,10 +254,10 @@ void *watch_temp()
               }
 
               if (event->mask & IN_MOVED_TO){
-                 if (event->mask & IN_ISDIR)
-                      printf("The directory %s is transferring.\n", event->name);
-                  else
-                      printf("The file %s is transferring.\n", event->name);
+                 if (event->mask & IN_ISDIR){}
+                      //printf("The directory %s is transferring.\n", event->name);
+                  else{}
+                      //printf("The file %s is transferring.\n", event->name);
 
               }
 

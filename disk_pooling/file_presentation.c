@@ -97,8 +97,10 @@ void* create_link(){
 				memmove(x, x + strlen("part1."), 1 + strlen(x + strlen("part1.")));
 				//printf("X AFTER := %s\n", x);
 				sprintf(dest, "%s/%s%s", SHARE_LOC, dir, x);
+				//printf("[+] %s: %s%s\n", SHARE_LOC, dir, x);
 			} else {
 				sprintf(dest, "%s/%s", SHARE_LOC, sqlite3_column_text(res,0));
+				//printf("[+] %s: %s\n", SHARE_LOC, sqlite3_column_text(res,0));
 			}
 
 
@@ -106,6 +108,7 @@ void* create_link(){
 			//printf("DEST := %s\n", dest);
 			if (symlink(source,dest) == 0){
 				syslog(LOG_INFO, "File Presentation: Created Link: %s\n", dest);
+				printf("[+] %s: %s\n", SHARE_LOC, dest);
 			}else {	}
 		}
 	} else {
@@ -119,6 +122,7 @@ void* create_link(){
 			//printf("IN CACHE: SOURCE := %s | DEST := %s\n", source, dest);
 			if (symlink(source,dest) == 0){
 				syslog(LOG_INFO,"File Presentation: Created Link %s\n", dest);
+				printf("[+] %s: %s\n", SHARE_LOC, dest);
 			} 
 		}
 	}

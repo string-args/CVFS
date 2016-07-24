@@ -62,7 +62,7 @@ void assemble_cache_file(String filename, String root){
    sqlite3_close(db);
    //printf("RANDOM!\n");
    sprintf(comm, "cat %s > '%s/part1.%s'", files, ASSEMBLY_LOC, filename);
-   printf("COMM := %s\n", comm);
+   //printf("COMM := %s\n", comm);
    //syslog(LOG_INFO, "VolumeManagement: comm = %s\n", comm);
 
   //syslog(LOG_INFO, "VolumeManagement: PART1 OF THE FILE: %s/%s", ftemploc,ftemp);
@@ -72,10 +72,10 @@ void assemble_cache_file(String filename, String root){
    String put_cache = "";
    sprintf(put_cache, "mv '%s/part1.%s' '%s/part1.%s'", ASSEMBLY_LOC, filename, CACHE_LOC, filename);
    //syslog(LOG_INFO, "VolumeManagement: MV = %s\n", put_cache);
-   printf("PUT CACHE := %s\n", put_cache);
+   //printf("PUT CACHE := %s\n", put_cache);
 
    system(put_cache);
-
+   printf("[+] Cache: part1.%s\n", filename);
    //String remove = "";
    //sprintf(remove, "rm '%s/part1.%s'", ASSEMBLY_LOC, filename);
    //system(remove);
@@ -137,7 +137,7 @@ void assemble(String filename){
     }
     sqlite3_finalize(res);
 
-	printf("ROOT := %s\n", root);
+	//printf("ROOT := %s\n", root);
 
     if (strstr(filename, "part1.") != NULL){
 	memmove(filename, filename+strlen("part1."), 1+strlen(filename+strlen("part1.")));
@@ -145,7 +145,7 @@ void assemble(String filename){
 
    /*Look for all the fileparts in the database. part<number>.<filename>*/
    sprintf(query, "SELECT filename, fileloc FROM VolContent WHERE filename LIKE '%spart%c.%s'", root, percent, filename);
-   printf("\n\n\nfile assembly::: finding parts query: %s\n\n\n\n", query);
+   //printf("\n\n\nfile assembly::: finding parts query: %s\n\n\n\n", query);
 
    rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
    good = 0;
@@ -174,7 +174,7 @@ void assemble(String filename){
     sqlite3_finalize(res);
 
    sprintf(comm, "cat %s > '%s/part1.%s'", files, ASSEMBLY_LOC, filename);
-   printf("COMM := %s\n", comm);
+   //printf("COMM := %s\n", comm);
 
 	// syslog(LOG_INFO, "VolumeManagement: comm = %s\n", comm);
 
@@ -200,10 +200,12 @@ void assemble(String filename){
    sprintf(cp, "cp '%s' '%s/%s'", volname, STORAGE_LOC, tempname);
    //move assembled file from assembly to volume with part1
    sprintf(mv, "mv '%s/%s' '%s'", ASSEMBLY_LOC, assfile, volname);
-   printf("\nfile assembly CP = %s\n", cp);
-   printf("\nfile assembly MV = %s\n", mv);
+   //printf("\nfile assembly CP = %s\n", cp);
+   //printf("\nfile assembly MV = %s\n", mv);
    system(cp);
    system(mv);
+
+   printf("[+] %s: %s\n", STORAGE_LOC, tempname);
 
    //String remove = "";
    //sprintf(remove, "rm %s/%s", ASSEMBLY_LOC, assfile);
@@ -245,7 +247,7 @@ void disassemble(String filename){
 	const char *tail;
 	int rc;
 
-        printf("IN DISASSEMBLE!\n");
+        //printf("IN DISASSEMBLE!\n");
 	rc = sqlite3_open(DBNAME, &db);
 	if (rc != SQLITE_OK){
 		fprintf(stderr, "Can't open database %s!\n", sqlite3_errmsg(db));
@@ -260,7 +262,7 @@ void disassemble(String filename){
 	while (!good){
 		rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
 		if (rc != SQLITE_OK){
-			printf("Disassemble: SQL Error: %s\n", sqlite3_errmsg(db));
+			//printf("Disassemble: SQL Error: %s\n", sqlite3_errmsg(db));
 		}else {good = 1;}
 	}
 	if (sqlite3_step(res) == SQLITE_ROW){
@@ -271,7 +273,7 @@ void disassemble(String filename){
 	String volume = "";
 	sprintf(query, "Select fileloc from VolContent where filename = '%s%s'", root, filename);
 	good = 0;
-        printf("Root := %s\n", root);
+        //printf("Root := %s\n", root);
 	while (!good){
 		rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
 		if (rc != SQLITE_OK){
@@ -281,15 +283,17 @@ void disassemble(String filename){
 	if (sqlite3_step(res) == SQLITE_ROW){
 		strcpy(volume, sqlite3_column_text(res,0));
 	}
-        printf("VOLUME := %s\n", volume);
+        //printf("VOLUME := %s\n", volume);
 	sqlite3_finalize(res);
 	//sqlite3_close(db);
 
 	String mv = "";
 	sprintf(mv, "mv '%s/%s' '%s/%s%s'", STORAGE_LOC, filename, volume, root, filename);
-	printf("Disassemble MV := %s\n", mv);
+	//printf("Disassemble MV := %s\n", mv);
 	system(mv);
 	sqlite3_close(db);
+
+	printf("[-] %s: %s\n", STORAGE_LOC, filename);
 
 	FILE *fp1 = fopen("../file_transaction/assembled.txt", "rb");
         FILE *fp2 = fopen("../file_transaction/disassembled.txt", "ab");
@@ -305,5 +309,5 @@ void disassemble(String filename){
 	fclose(fp1);
 	fclose(fp2);
 	system("mv '../file_transaction/disassembled.txt' '../file_transaction/assembled.txt'");
-	printf("Disassembly done!\n");
+	//printf("Disassembly done!\n");
 }

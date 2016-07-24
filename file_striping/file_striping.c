@@ -84,7 +84,7 @@ void stripe(String dirpath, String fullpath, String filename) {
         strcpy(partfiles[part_count - 1], part_file);
        part_count++;
 
-	printf("READ BYTES := %d\n", bytes_read);
+	//printf("READ BYTES := %d\n", bytes_read);
   }
   file_map_stripe(partnames, partfiles, part_count - 1);    // not so sure if -1
 

@@ -50,7 +50,7 @@ void update_target_size(sqlite3 *db, String filename, const char* fileloc){
     while (!good){
     	rc = sqlite3_exec(db, sql, 0, 0, &err);
     	if (rc != SQLITE_OK){
-		printf("Update Target: SQL Error: %s\n", sqlite3_errmsg(db));
+		//printf("Update Target: SQL Error: %s\n", sqlite3_errmsg(db));
 	} else {good = 1;}
     }
 
@@ -90,7 +90,7 @@ void update_list(sqlite3 *db, String filename, const char* fileloc){
     	rc = sqlite3_exec(db, sql, 0, 0, &err);
     	if (rc != SQLITE_OK){
        		good = 0;
-		printf("Update List: SQL Error: %s\n", sqlite3_errmsg(db));
+		//printf("Update List: SQL Error: %s\n", sqlite3_errmsg(db));
     	} else {
 		good = 1;
 	}
@@ -122,31 +122,32 @@ void file_map(String fullpath, String filename){
        exit(1);
     }
 
-    printf("IN FILE_MAP FUNCTION!\n");
+    //printf("IN FILE_MAP FUNCTION!\n");
     int good = 0;
      while(!good) {
 	rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
 	if (rc != SQLITE_OK) {
 		//printf("db is locked\n");
-		printf("FILE MAP: SQL Error: %s\n", sqlite3_errmsg(db));
+		//printf("FILE MAP: SQL Error: %s\n", sqlite3_errmsg(db));
 	} else {
 		good = 1;
 	}
       }
 
-    printf("DONE WITH LOOP:!\n");
+    //printf("DONE WITH LOOP:!\n");
     if(sqlite3_step(res) == SQLITE_ROW){
        syslog(LOG_INFO, "VolumeManagement: File %s is redirected to %s.\n", filename, sqlite3_column_text(res,1));
        sprintf(comm, "mv '%s' '%s/%s'", fullpath, sqlite3_column_text(res,1), filename);
        system(comm);
 	//this part update the entry of the file to volcontent table
-       printf("Updating VolContent!\n");
+       //printf("Updating VolContent!\n");
+       printf("[+] %s: %s\n", sqlite3_column_text(res,1), filename);
        update_list(db, filename, sqlite3_column_text(res,1));
     }
 
     sqlite3_finalize(res);
     sqlite3_close(db);
-    printf("Done with File map!\n");
+    //printf("Done with File map!\n");
 }
 
 void file_map_stripe(String *fullpaths, String *filenames, int parts) {
@@ -170,12 +171,12 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
        exit(1);
     }
 
-    printf("IN FILE_MAP_STRIPE FUNCTION!\n");
+    //printf("IN FILE_MAP_STRIPE FUNCTION!\n");
     int good = 0;
      while(!good) {
     rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
     if (rc != SQLITE_OK) {
-        printf("FILE MAP: SQL Error: %s\n", sqlite3_errmsg(db));
+        //printf("FILE MAP: SQL Error: %s\n", sqlite3_errmsg(db));
     } else {
         good = 1;
     }
@@ -183,45 +184,71 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
     String mountpts[parts];
     double avspaces[parts];
     int num_targs = 0, zi = 0, k = 0;
-    printf("DONE WITH LOOP:!\n");
-    if(sqlite3_step(res) == SQLITE_ROW){
+    //printf("DONE WITH LOOP:!\n");
+    while(sqlite3_step(res) == SQLITE_ROW){
         avspaces[num_targs] = sqlite3_column_double(res,0);
         strcpy(mountpts[num_targs], sqlite3_column_text(res,1));
-        num_targs++;
+        
+	//printf("Target: %s | Avspace: %lf\n", mountpts[num_targs], avspaces[num_targs]);
+
+	num_targs++;
     }
 
+    //for checking
+    //int pi = 0;
+    //for (pi = 0; pi < parts; pi++){
+    //	printf("[%d] Fullpath : %s | Filename : %s\n", pi, fullpaths[pi], filenames[pi]);
+    //}
+
     // write each part to respective target
+    //int target_num = 0;
     for (zi = 0; zi < parts; zi++) {
         if (num_targs == 0) {   // wala nang target pero meron pang part = HINDI NA KASYA :(
             printf("Targets is FULL. Cannot do this.\n");
             exit(1);
         }
 
+        //if (target_num == num_targs){
+	//    target_num = 0;
+        //}
+
         String filename = "";
         String fullpath = "";
         strcpy(filename, filenames[zi]);
         strcpy(fullpath, fullpaths[zi]);
 
+        //printf("Filename : %s\n", filename);
+	//printf("Fullpath : %s\n", fullpath);
+
         int target_num = zi % num_targs;
+	//printf("Target Num : %d\n", target_num);
+
         long curr_avspace = avspaces[target_num];
-        if (curr_avspace < STRIPE_SIZE) {   // if hindi kasya sa target
-            num_targs--;
+	//printf("Curr Avspace = %lf\n", avspaces[target_num]);
+        if (avspaces[target_num] < STRIPE_SIZE) {   // if hindi kasya sa target
+            //printf("Curr avspace : %ld | Stripe : %ld\n", curr_avspace, STRIPE_SIZE);
+	    num_targs--;
             zi--;
             continue;
-        }
+       }
+
 
         String curr_mount = "";
         strcpy(curr_mount, mountpts[target_num]);
+
+        //printf("Curr mount: %s | Space: %ld\n", curr_mount, curr_avspace);
 
         syslog(LOG_INFO, "VolumeManagement: File %s is redirected to %s.\n", filename, curr_mount);
         sprintf(comm, "mv '%s' '%s/%s'", fullpath, curr_mount, filename);
         system(comm);
 
         // update our target copy, we assume all parts are of STRIPE_SIZE length only approximate
-        avspaces[target_num] = curr_avspace - STRIPE_SIZE;
+        avspaces[target_num] = avspaces[target_num] - STRIPE_SIZE;
 
         // this part update the entry of the file to volcontent table AND target size
-        printf("Updating VolContent!\n");
+        //printf("Updating VolContent!\n");
+        //target_num++;
+        printf("[+] %s: %s\n", curr_mount, filename);
         update_list(db, filename, curr_mount);
     }
 
@@ -229,7 +256,7 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
     sqlite3_finalize(res);
     sqlite3_close(db);
 
-    printf("Done with File map STRIPE!\n");
+    //printf("Done with File map STRIPE!\n");
 }
 
 void file_map_cache(String filename, String event_name){
@@ -248,8 +275,10 @@ void file_map_cache(String filename, String event_name){
     //update_cache_list(filename);
     syslog(LOG_INFO, "VolumeManagement: Copying file to cache...\n");
     sprintf(cp, "cp '%s/%s' '%s/part1.%s'", TEMP_LOC, filename, CACHE_LOC, event_name);
-    printf("in filemapcache: cp: %s\n", cp);
+    //printf("in filemapcache: cp: %s\n", cp);
     system(cp); //copy file to cache
+
+    printf("[+] Cache: part1.%s\n", event_name); 
 
     //String file = "";
     //sprintf(file, "%s/part1.%s", CACHE_LOC, event_name);
