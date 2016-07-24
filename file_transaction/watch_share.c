@@ -327,27 +327,26 @@ void *watch_share()
 
 		} else {
 			//printf("Delete event: %s\n", event->name);
-			String root = "";
-			String arr[MAX_DEPTH];
-			int n = sizeof(wds) / sizeof(wds[0]);
+			//String root = "";
+			//String arr[MAX_DEPTH];
+			//int n = sizeof(wds) / sizeof(wds[0]);
 			int d, i, rooti;
 			
-			for (d = 0; d < MAX_DEPTH; d++){
-				strcpy(arr[d], "");
-			}
+			//for (d = 0; d < MAX_DEPTH; d++){
+			//	strcpy(arr[d], "");
+			//}
 
 			//get_roots(wds, trigger, dirs, c, event->wd, arr);
-			for (d = 1; d < c; d++){
+			/*for (d = 1; d < c; d++){
 				if (strcmp(arr[d], "") != 0){
 					strcat(root, arr[d]);
 					strcat(root, "/");
 				}
-			}
+			}*/
 
 			for (d = 0; d < MAX_WTD; d++){
 				if (wds[d] == event->wd){
-					printf("[-] %s: %s/%s\n", SHARE_LOC, dirs[d], event->name);
-					
+					printf("[-] %s: %s/%s\n", SHARE_LOC, dirs[d], event->name);		
 					delete_linear_file(dirs[d], event->name);
 					break;
 				}
