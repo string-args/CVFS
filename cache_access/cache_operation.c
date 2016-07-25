@@ -37,7 +37,7 @@ void incrementFrequency(String filename){
   while(!good) {
 	rc = sqlite3_exec(db, query, 0, 0, &errmsg);
 	if (rc != SQLITE_OK) {
-		printf("DB Error %s\n", sqlite3_errmsg(db));
+		printf("Increment frequency: DB Error %s\n", sqlite3_errmsg(db));
 	} else {
 		//printf("Increment Frequency for %s\n", filename);
 		good = 1;
@@ -69,7 +69,7 @@ void update_cache_list(String filename, String root){
    while (!good){
    	rc = sqlite3_exec(db, query, 0, 0, &errmsg);
    	if (rc != SQLITE_OK){
-        printf("DB Error %s\n", sqlite3_errmsg(db));
+        printf("Update Cache list: DB Error %s\n", sqlite3_errmsg(db));
    	} else {
 		good = 1;
 	}
@@ -205,8 +205,7 @@ void refreshCache(){
 			printf("RM := %s\n", rm);
 
 			sprintf(rm, "rm '%s/%s'", CACHE_LOC, cache_contents[i]);
-			system(rm);
-			printf("RM := %s\n", rm);
+			system(rm);			printf("RM := %s\n", rm);
 
 			create_link();
 		}
@@ -237,6 +236,10 @@ void refreshCache(){
     //system("ls /mnt/CVFSCache");
     //printf("\n\n");
 
+   int flag = 1;
+   FILE *fp = fopen("../file_transaction/flag.txt", "wb");
+   fprintf(fp, "%d", flag);
+   fclose(fp);
 
     //printf("COMM_OUT:=\n");
     strcpy(comm, "ls /mnt/CVFSCache");
@@ -347,8 +350,10 @@ void refreshCache(){
 	      //printf("cache: rm = %s\n", rm);	// might have error here if root does not have a / at the end, so we print to know
 	      
               printf("[-] %s: %s%s", SHARE_LOC, root, file);
-	      system(rm);
 
+		printf("IN REFRESH CACHE!\n");
+	      //system(rm);
+		//exit(1);
 	      // commented code below, since file_presentation should auto create link?
 	      create_link();		// uncommented already because its aidz code
               //create_link_cache(filename);
@@ -395,12 +400,12 @@ void refreshCache(){
 	  	  //sqlite3_finalize(res);
 	  	  strcpy(comm1, "");
 	  	  memmove(filename, filename+strlen("part1."), 1+strlen(filename+strlen("part1.")));
-          sprintf(comm1, "rm '%s/%s%s'", SHARE_LOC, root, filename);
-          printf("COMM1 (remove from share) = %s\n", comm1);
+          //sprintf(comm1, "rm '%s/%s%s'", SHARE_LOC, root, filename);
+          //printf("COMM1 (remove from share) = %s\n", comm1);
           //syslog(LOG_INFO, "CacheAccess: comm = %s\n", comm);
           system(comm);
           syslog(LOG_INFO, "CacheAccess: Removing %s in Cache...\n", filename);
-	  system(comm1);
+	  //system(comm1);
 	  syslog(LOG_INFO, "CacheAccess: Removing %s in Share...\n", filename);
           //update link cache here....
 	  create_link();			// commented this, not sure if it is automatic, OK UNCOMMENTED BECAUSE AIDZ CODE
@@ -422,4 +427,7 @@ void refreshCache(){
    //sqlite3_finalize(res);
     sqlite3_close(db);
     printf("tapos na ang ref cache");
+
+      
+   // exit(1);
 }

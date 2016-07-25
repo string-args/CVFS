@@ -62,11 +62,14 @@ void assemble_cache_file(String filename, String root){
    sqlite3_close(db);
    //printf("RANDOM!\n");
    sprintf(comm, "cat %s > '%s/part1.%s'", files, ASSEMBLY_LOC, filename);
-   //printf("COMM := %s\n", comm);
+   printf("COMM := %s\n", comm);
    //syslog(LOG_INFO, "VolumeManagement: comm = %s\n", comm);
 
   //syslog(LOG_INFO, "VolumeManagement: PART1 OF THE FILE: %s/%s", ftemploc,ftemp);
    system(comm);
+ 
+   printf("ASSEMBLY FINISHED!\n");
+
    syslog(LOG_INFO, "VolumeManagement: Assembled File: %s/%s\n", ASSEMBLY_LOC, assfile);
 
    String put_cache = "";

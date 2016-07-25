@@ -90,12 +90,19 @@ void delete_linear_file(String root, String file){
 	String fullpath;
 	sprintf(fullpath, "%s/%s", root, file);
 
+	String rm = "";
 
-
-	printf("Full path: %s\n", fullpath);
+	//printf("Full path: %s\n", fullpath);
 
 	if (strstr(fullpath, "/mnt/Share") != NULL)
 		memmove(fullpath, fullpath + strlen("/mnt/Share/"), 1 + strlen(fullpath + strlen("/mnt/Share/")));
+
+	int status = 1;
+	sprintf(rm, "%s/%s", SHARE_LOC, fullpath);
+	//status = remove(rm);
+	if (status == 0){
+		printf("[-] %s: %s\n", SHARE_LOC, rm);
+	}
 
 	//printf("Fullpath after: %s\n", fullpath);
 
@@ -108,7 +115,7 @@ void delete_linear_file(String root, String file){
 	double filesize;
 	sprintf(query, "SELECT filename, fileloc, filesize FROM VOLCONTENT WHERE filename = '%s';", fullpath);
 	
-	printf("query1 = %s\n", query);
+	//printf("query1 = %s\n", query);
 
 	rc = sqlite3_open(DBNAME, &db);
 	if (rc != SQLITE_OK){
@@ -129,14 +136,14 @@ void delete_linear_file(String root, String file){
 		strcpy(fileloc, sqlite3_column_text(res,1));
 		filesize = sqlite3_column_double(res,2);
 
-		printf("filename: %s | fileloc %s | filesize %lf\n", filename, fileloc, filesize);
+		//printf("filename: %s | fileloc %s | filesize %lf\n", filename, fileloc, filesize);
 	}
 	sqlite3_finalize(res);
 
 	//update target size here
 	sqlite3_stmt *res2;
 	sprintf(query, "SELECT avspace FROM target where mountpt = '%s';", fileloc);
-	printf("query2 = %s\n", query);
+	//printf("query2 = %s\n", query);
 	double avspace = 0.0;
 	good = 0;
 	while (!good){
@@ -148,7 +155,7 @@ void delete_linear_file(String root, String file){
 	if (sqlite3_step(res2) == SQLITE_ROW){
 		avspace = sqlite3_column_double(res2,0);
 	
-		printf("fileloc: %s | avspace: %lf\n", fileloc, sqlite3_column_double(res2,0));
+		//printf("fileloc: %s | avspace: %lf\n", fileloc, sqlite3_column_double(res2,0));
 	}
 	sqlite3_finalize(res2);
 
@@ -157,7 +164,7 @@ void delete_linear_file(String root, String file){
 
 	sprintf(query, "Update Target set avspace = %lf where mountpt = '%s';", avspace, fileloc);
 	
-	printf("query3 = %s\n", query);
+	//printf("query3 = %s\n", query);
 
 	good = 0;
 	while (!good){
@@ -169,7 +176,7 @@ void delete_linear_file(String root, String file){
 	//after updating avspace, delete it from volcontent table
 	sprintf(query, "Delete from volcontent where filename = '%s';", filename);
 
-	printf("query4 = %s\n", query);
+	//printf("query4 = %s\n", query);
 
 	good = 0;
 	while (!good){
@@ -179,12 +186,13 @@ void delete_linear_file(String root, String file){
 	}
 
 	//delete the actual file from target;
-	String rm = "";
-	sprintf(rm, "rm '%s/%s'", fileloc, filename);
+	//String rm = "";
+	sprintf(rm, "%s/%s", fileloc, filename);
+	status = remove(rm);
 
-	printf("query5 = %s\n", rm);
+	//printf("query5 = %s\n", rm);
 
-	if (system(rm) == 0)
+	if (status == 0)
         	printf("[-] %s: %s\n", fileloc, filename);
 
 	//close db
@@ -343,14 +351,16 @@ void *watch_share()
 					strcat(root, "/");
 				}
 			}*/
-
+			printf("%s\n", event->name);
 			for (d = 0; d < MAX_WTD; d++){
 				if (wds[d] == event->wd){
-					printf("[-] %s: %s/%s\n", SHARE_LOC, dirs[d], event->name);		
+			
 					delete_linear_file(dirs[d], event->name);
+					printf("DELETE LINEAR FILE!\n");
 					break;
 				}
 			}
+			//break;
 		}
 	     }
 
@@ -414,7 +424,8 @@ void *watch_share()
                 // take NOTE: assembly of file should only happen when all files are present
                 // (or when no file striping is happening)
                 // can this be determined with random.txt?
-                assemble(event->name);}
+                //assemble(event->name);}
+		}
 			    //String assembled_file = "";
 			    //sprintf(assembled_file, "%s/%s", ASSEMBLY_LOC, event->name);
 

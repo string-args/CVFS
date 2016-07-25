@@ -15,7 +15,7 @@
 #include "../volume_management/file_mapping.h"
 #include "file_striping.h"
 
-#define MAX_PARTS   400     // maximum number of stripe parts
+#define MAX_PARTS   4096     // maximum number of stripe parts
 // this can handle 20GB striped into 64MB of stripe size
 
 void stripe(String dirpath, String fullpath, String filename) {

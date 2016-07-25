@@ -162,7 +162,7 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
     char *err = 0;
     const char *tail;
 
-    sprintf(sql, "SELECT avspace, mountpt FROM Target WHERE avspace > %ld ORDER BY avspace DESC;", STRIPE_SIZE);
+    sprintf(sql, "SELECT avspace, mountpt FROM Target WHERE avspace >= %ld ORDER BY avspace DESC;", STRIPE_SIZE);
 
     rc = sqlite3_open(DBNAME, &db); /*Open database*/
     if (rc != SQLITE_OK){
@@ -194,6 +194,7 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
 	num_targs++;
     }
 
+    //printf("Num targs: %d\n", num_targs);
     //for checking
     //int pi = 0;
     //for (pi = 0; pi < parts; pi++){
@@ -226,7 +227,7 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
         long curr_avspace = avspaces[target_num];
 	//printf("Curr Avspace = %lf\n", avspaces[target_num]);
         if (avspaces[target_num] < STRIPE_SIZE) {   // if hindi kasya sa target
-            //printf("Curr avspace : %ld | Stripe : %ld\n", curr_avspace, STRIPE_SIZE);
+            //printf("Hindi na kasya! Curr avspace : %ld | Stripe : %ld\n", curr_avspace, STRIPE_SIZE);
 	    num_targs--;
             zi--;
             continue;
