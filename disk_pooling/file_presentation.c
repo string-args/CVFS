@@ -99,27 +99,27 @@ void* create_link(){
 				sprintf(dest, "%s/%s%s", SHARE_LOC, dir, x);
 				//printf("[+] %s: %s%s\n", SHARE_LOC, dir, x);
 		
-				String update = "";
-				sprintf(update, "ln -snf '%s' '%s'", source, dest);
-				system(update);
+				//String update = "";
+				//sprintf(update, "ln -snf '%s' '%s'", source, dest);
+				//system(update);
 			} else {
 				sprintf(dest, "%s/%s", SHARE_LOC, sqlite3_column_text(res,0));
 				//printf("[+] %s: %s\n", SHARE_LOC, sqlite3_column_text(res,0));
-				symlink(source,dest);
+				//symlink(source,dest);
 			}
 
 			//String update = "";
 			//sprintf(update, "ln -snf '%s' '%s'", source, dest);
 			//system(update);
-			printf("[+] %s: %s\n", SHARE_LOC, dest);
+			//printf("[+] %s: %s\n", SHARE_LOC, dest);
 			//printf("SOURCE := %s | DEST := %s\n", source, dest);
 			//printf("DEST := %s\n", dest);
-			/*
+			
 			if (symlink(source,dest) == 0){
 				syslog(LOG_INFO, "File Presentation: Created Link: %s\n", dest);
 				printf("[+] %s: %s\n", SHARE_LOC, dest);
-				printf("FILEPRESENT\n");
-			}else {	}*/
+				//printf("FILEPRESENT\n");
+			}else {	}
 		}
 	} else {
 		if (strstr(sqlite3_column_text(res,0),"part1.") != NULL){
@@ -130,15 +130,15 @@ void* create_link(){
 			//sprintf(source, "%s/%s", CACHE_LOC, sqlite3_column_text(res,0));
 			sprintf(dest, "%s/%s%s", SHARE_LOC, dir,x);
 			//printf("IN CACHE: SOURCE := %s | DEST := %s\n", source, dest);
-			/*if (symlink(source,dest) == 0){
+			if (symlink(source,dest) == 0){
 				syslog(LOG_INFO,"File Presentation: Created Link %s\n", dest);
 				printf("[+] %s: %s\n", SHARE_LOC, dest);
 				printf("FILEPRESENT!\n");
-			} */
-			String update = "";
-			sprintf(update, "ln -snf '%s' '%s'", source, dest);
-			system(update);
-			printf("[+] %s: %s\n", SHARE_LOC, dest);
+			} 
+			//String update = "";
+			//sprintf(update, "ln -snf '%s' '%s'", source, dest);
+			//system(update);
+			//printf("[+] %s: %s\n", SHARE_LOC, dest);
 		}
 	}
    }

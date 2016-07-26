@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +27,24 @@
 #define MAX_WTD 200 //max is 200 watches, assumed
 #define MAX_DEPTH 30
 #define TARGET_NUM 30
+
+#define MAX_PARTS 4096
+
+//this function replace substring in a string
+char *replace_str(char *str, char *orig, char *rep){
+	static char buffer[4096];
+	char *p;
+	
+	if (!(p = strstr(str, orig)))
+	return str;
+
+	strncpy(buffer, str, p-str);
+	buffer[p-str] = '\0';
+
+	sprintf(buffer+(p-str), "%s%s", rep, p+strlen(orig));
+
+	return buffer;
+}
 
 //THIS FUNCTION ADD A WATCH TO ALL DIRECTORIES AND SUBDIRECTORIES
 //THAT ARE ALREADY WRITTEN
@@ -85,6 +104,202 @@ void list_dir(String dir_to_read, int fd, int wds[], String dirs[], int counter)
     closedir(dr);
 }
 
+void check_missing(String output_here){
+
+	sqlite3 *db;
+	sqlite3_stmt *res;
+
+	String found = "";
+
+	int rc;
+	const char *tail;
+
+	rc = sqlite3_open(DBNAME, &db);
+	if (rc != SQLITE_OK){
+		fprintf(stderr, "Can't open database! %s\n",sqlite3_errmsg(db));
+		sqlite3_close(db);
+		exit(1); 	
+	}
+
+	String sql = "";
+	
+	strcpy(sql, "SELECT filename, fileloc from VolContent;");
+	int good = 0;
+	while (!good){
+		rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
+		if(rc != SQLITE_OK){}
+		else {good = 1;}
+	}
+
+	while (sqlite3_step(res) == SQLITE_ROW){
+		//only look for stripe files
+		if (strstr(sqlite3_column_text(res,0), "part1.") != NULL){
+		String filename = "";
+		String tempname = "";
+		String fileloc = "";
+		String source = "", dest = "";
+		strcpy(filename, sqlite3_column_text(res,0));
+		strcpy(tempname, filename);
+		strcpy(fileloc, sqlite3_column_text(res,1));
+		sprintf(source, "%s/%s", fileloc, filename);
+
+		strcpy(filename, replace_str(filename, "part1.", ""));
+		//memmove(filename, filename + strlen("part1."), pos + strlen(filename + strlen("part1.")));
+		sprintf(dest, "%s/%s", SHARE_LOC, filename);
+
+		//printf("SOURCE: %s | DEST: %s\n", source, dest);
+			
+			//check share if not found
+			if (access(dest, F_OK) != -1){
+				//do nothing
+				//printf("DO NOTHING!\n");
+			} else {
+				//this is what we're looking for
+				//printf("INSERT HERE!\n");
+				//printf("tempname = %s\n", tempname);
+				strcpy(output_here, tempname);
+				//printf("AFTER STCPY!\n");
+				break;
+			}
+		}
+	}
+	sqlite3_finalize(res);
+	sqlite3_close(db);
+	//printf("AFTER CLOSE DB!\n");	
+	//printf("FOUND := %s\n", found);
+	//exit(1);
+	//return found;
+}
+
+void delete_from_cache(String file){
+	sqlite3 *db;
+	int rc;
+
+	String sql = "";
+
+	rc = sqlite3_open(DBNAME, &db);
+	if (rc != SQLITE_OK){
+		fprintf(stderr, "Can't open database %s!\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+		exit(1);
+	}
+
+	sprintf(sql, "Delete from cachecontent where filename = '%s';", file);
+	int good = 0;
+	while (!good){
+		rc = sqlite3_exec(db, sql, 0, 0, 0);
+		if (rc != SQLITE_OK){
+	
+		} else {good = 1;}
+	}
+	sqlite3_close(db);
+	
+}
+
+void delete_stripe_file(String file){
+
+	sqlite3 *db;
+	sqlite3_stmt *res;
+
+	const char *tail;
+
+	int rc;
+
+	String sql = "";
+	String name = "";	
+
+	String parts[4096];
+	int counter = 0;
+
+	rc = sqlite3_open(DBNAME, &db);
+	if (rc != SQLITE_OK){
+		fprintf(stderr, "Can't open database %s!\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+		exit(1);
+	}
+
+	//remove part1. change to part% for query purposes	
+	strcpy(name, replace_str(file, "part1.", "part%."));
+
+	//this query select all the parts since part%. na
+	sprintf(sql, "SELECT filename, fileloc, filesize FROM VOLCONTENT where filename like '%s'", name);
+	//printf("sql1 = %s\n", sql);
+	int good = 0;
+	while (!good){
+		rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
+		if (rc != SQLITE_OK){
+
+		} else {good = 1;}
+	}	
+	
+	while(sqlite3_step(res) == SQLITE_ROW){
+		//res0 = filename, res1 = fileloc, res3 = filesize
+		strcpy(parts[counter], sqlite3_column_text(res,0));
+		//select fileloc and update target size here
+		sqlite3_stmt *res2;
+		const char *tail2;
+		double avspace;
+		String sql2 = "";
+		sprintf(sql2, "select avspace from target where mountpt = '%s';", sqlite3_column_text(res,1));
+		//printf("SQL2 := %s\n", sql2);
+		good = 0;
+		while (!good){
+			rc = sqlite3_prepare_v2(db, sql2, 1000, &res2, &tail2);
+			if (rc != SQLITE_OK){
+			}else {good = 1;}
+		}
+		if (sqlite3_step(res2) == SQLITE_ROW){
+			//get avspace of target;
+			avspace = sqlite3_column_double(res2,0);
+			//printf("avspace = %lf\n", avspace);
+		}
+		sqlite3_finalize(res2);
+
+		avspace = avspace + sqlite3_column_double(res,3);
+		//update target size here
+		sprintf(sql2, "Update target set avspace = %lf where mountpt = '%s';", avspace, sqlite3_column_text(res,1));
+		//printf("SQL3 = %s\n", sql2);
+		good = 0;
+		while (!good){
+			rc = sqlite3_exec(db, sql2, 0, 0, 0);
+			if (rc != SQLITE_OK){
+	
+			} else {good = 1;}
+		}
+
+		//remove it from target;
+		int status = 0;
+		String filepath = "";
+		sprintf(filepath, "%s/%s", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
+		//printf("filepath = %s\n", filepath);
+		status = remove(filepath);
+		if (status == 0){
+			printf("[-] %s: %s\n", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
+		}
+		counter++;
+	}
+
+	sqlite3_finalize(res);
+
+	//after deleting actual file delete entry from volcontent
+	int i = 0;
+	for (i = 0; i < MAX_PARTS; i++){
+		if (strcmp(parts[i], "") != 0){
+			sprintf(sql, "delete from volcontent where filename = '%s';", parts[i]);
+			//printf("parts_sql = %s\n", sql);
+			good = 0;
+			while (!good){
+				rc = sqlite3_exec(db, sql, 0, 0, 0);
+				if (rc != SQLITE_OK){
+				} else {good = 1;}
+			}
+		}
+	}
+	
+
+	sqlite3_close(db);
+}
+
 void delete_linear_file(String root, String file){
 
 	String fullpath;
@@ -99,10 +314,10 @@ void delete_linear_file(String root, String file){
 
 	int status = 1;
 	sprintf(rm, "%s/%s", SHARE_LOC, fullpath);
-	//status = remove(rm);
+	status = remove(rm);
 	if (status == 0){
 		printf("[-] %s: %s\n", SHARE_LOC, rm);
-	}
+	
 
 	//printf("Fullpath after: %s\n", fullpath);
 
@@ -195,8 +410,10 @@ void delete_linear_file(String root, String file){
 	if (status == 0)
         	printf("[-] %s: %s\n", fileloc, filename);
 
+
 	//close db
 	sqlite3_close(db);
+    }
 }
 
 void *watch_share()
@@ -334,29 +551,60 @@ void *watch_share()
 		if (event->mask & IN_ISDIR){
 
 		} else {
-			//printf("Delete event: %s\n", event->name);
-			//String root = "";
-			//String arr[MAX_DEPTH];
-			//int n = sizeof(wds) / sizeof(wds[0]);
+		
 			int d, i, rooti;
-			
-			//for (d = 0; d < MAX_DEPTH; d++){
-			//	strcpy(arr[d], "");
-			//}
+			//printf("%s\n", event->name);
+			//String fullpath = "";
+			//sprintf(fullpath, "%s/%s/%s"
 
-			//get_roots(wds, trigger, dirs, c, event->wd, arr);
-			/*for (d = 1; d < c; d++){
-				if (strcmp(arr[d], "") != 0){
-					strcat(root, arr[d]);
-					strcat(root, "/");
-				}
-			}*/
-			printf("%s\n", event->name);
+			//printf("DELETE EVENT!\n");
 			for (d = 0; d < MAX_WTD; d++){
 				if (wds[d] == event->wd){
-			
-					delete_linear_file(dirs[d], event->name);
-					printf("DELETE LINEAR FILE!\n");
+
+					//get the file the symbolic link pointing to
+					String fullpath = "";
+					char buf[PATH_MAX+1];
+					sprintf(fullpath, "%s/%s", dirs[d], event->name);
+					char *res = realpath(fullpath, buf);
+			if (res){
+			//get the size
+			//two diff cases: linear and stripe
+			if (strstr(buf, "part1.") != NULL){
+							//for stripe file
+			//if in cache
+			if (strstr(buf, "/mnt/CVFSCache") != NULL){
+			int status = 0;
+			String filename = "";
+			sprintf(filename, "part1.%s", event->name);
+			delete_from_cache(filename); //delete entry cachecontent
+			//printf("rm (cache) = %s\n", buf);
+			status = remove(buf);
+			if (status == 0){ //remove from cache
+				printf("[-] %s: %s\n", CACHE_LOC, buf); 
+			}
+
+			sprintf(filename, "%s/%s", dirs[d], event->name);
+			//printf("rm (share) = %s\n", filename);
+			status = remove(filename);
+			if (status == 0){ //remove from share
+				printf("[-] %s: %s\n", SHARE_LOC, event->name);
+			}
+			String target_file_path = "";
+			check_missing(target_file_path);
+			delete_stripe_file(target_file_path);
+			//printf("FILE LOCATION: %s\n", check_missing());
+			} else {
+				//not in cache how it will happen
+			}
+
+			} else {
+				delete_linear_file(dirs[d], event->name);
+			}
+
+					}
+						
+					//delete_linear_file(dirs[d], event->name);
+					//printf("DELETE LINEAR FILE!\n");
 					break;
 				}
 			}
@@ -518,7 +766,7 @@ void *watch_share()
 			}
 
                       	if (strstr(event->name, "part1.") != NULL){
-                        	   refreshCache();
+                        	   //refreshCache();
                       	}
 		      }
                   }

@@ -102,6 +102,9 @@ void update_list(sqlite3 *db, String filename, const char* fileloc){
 
 //this function redirects the file to targets
 void file_map(String fullpath, String filename, long sz){
+	//printf("IN FILE MAP!\n");
+	//printf("FULLPATH: %s\n", fullpath);
+
     int rc;
 
     String sql;
@@ -113,7 +116,7 @@ void file_map(String fullpath, String filename, long sz){
     char *err = 0;
     const char *tail;
 
-    strcpy(sql, "SELECT avspace, mountpt FROM TARGET WHERE avspace = (SELECT max(avspace) from Target) AND avspace >= %ld;");
+    sprintf(sql, "SELECT avspace, mountpt FROM TARGET WHERE avspace = (SELECT max(avspace) from Target) AND avspace >= %ld;", sz);
 
     rc = sqlite3_open(DBNAME, &db); /*Open database*/
     if (rc != SQLITE_OK){
@@ -136,6 +139,8 @@ void file_map(String fullpath, String filename, long sz){
 
     //printf("DONE WITH LOOP:!\n");
     if(sqlite3_step(res) == SQLITE_ROW){
+
+       //printf("IN SQLITE ROW!\n");
        syslog(LOG_INFO, "VolumeManagement: File %s is redirected to %s.\n", filename, sqlite3_column_text(res,1));
        sprintf(comm, "mv '%s' '%s/%s'", fullpath, sqlite3_column_text(res,1), filename);
        system(comm);
