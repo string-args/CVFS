@@ -595,6 +595,17 @@ void *watch_share()
 			//printf("FILE LOCATION: %s\n", check_missing());
 			} else {
 				//not in cache how it will happen
+				int status = 0;
+				String f = "";
+				sprintf(f, "%s/%s", dirs[d], event->name);
+				status = remove(f);
+				if (status == 0){
+					printf("[-] %s: %s\n", SHARE_LOC, f);
+				}
+				String target_file_path = "";
+				strcpy(target_file_path, replace_str(f,"/mnt/Share/", ""));
+				delete_stripe_file(target_file_path);
+
 			}
 
 			} else {
