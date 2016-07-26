@@ -179,7 +179,7 @@ void *watch_temp()
 
 		     sprintf(sors, "%s/%s", SHIT_STORAGE, event->name);
 		     sprintf(dest, "%s/%s", SHARE_LOC, x);
-		     
+
 		     if (symlink(sors,dest) == 0){
 			  printf("[+] %s: %s\n", SHARE_LOC, x);
 		     }else {
@@ -239,7 +239,7 @@ void *watch_temp()
                              //create_link_cache(filename);
                           // }
                            //stripe(event->n);
-                           //refreshCache();	
+                           //refreshCache();
 			   //printf("ROOT = %s\n", root);
 			   //printf("FILEPATH := %s\n", filepath);
 			   //printf("FILENAME := %s\n", filename);
@@ -247,7 +247,7 @@ void *watch_temp()
 			   //refreshCache();
                         } else {
 			   syslog(LOG_INFO, "FileTransaction: Transferring %s to targets...\n", filename);
-                           file_map(filepath, filename);
+                           file_map(filepath, filename, sz);
                         }
 		    }
                   }

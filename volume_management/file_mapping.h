@@ -4,7 +4,7 @@
 */
 
 
-void file_map(String fullpath, String filename);
+void file_map(String fullpath, String filename, long sz);
 
 void file_map_stripe(String *fullpaths, String *filenames, int parts);
 

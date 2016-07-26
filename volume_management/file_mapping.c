@@ -101,7 +101,7 @@ void update_list(sqlite3 *db, String filename, const char* fileloc){
 
 
 //this function redirects the file to targets
-void file_map(String fullpath, String filename){
+void file_map(String fullpath, String filename, long sz){
     int rc;
 
     String sql;
@@ -113,7 +113,7 @@ void file_map(String fullpath, String filename){
     char *err = 0;
     const char *tail;
 
-    strcpy(sql, "SELECT avspace, mountpt FROM TARGET WHERE avspace = (SELECT max(avspace) from Target);");
+    strcpy(sql, "SELECT avspace, mountpt FROM TARGET WHERE avspace = (SELECT max(avspace) from Target) AND avspace >= %ld;");
 
     rc = sqlite3_open(DBNAME, &db); /*Open database*/
     if (rc != SQLITE_OK){
@@ -143,7 +143,11 @@ void file_map(String fullpath, String filename){
        //printf("Updating VolContent!\n");
        printf("[+] %s: %s\n", sqlite3_column_text(res,1), filename);
        update_list(db, filename, sqlite3_column_text(res,1));
-    }
+   } else {
+       // did not fetch anything, probably targets are full, cannot fit this file inside
+       printf("Targets is FULL. Cannot do this.\n");
+       exit(1);
+   }
 
     sqlite3_finalize(res);
     sqlite3_close(db);
@@ -188,7 +192,7 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
     while(sqlite3_step(res) == SQLITE_ROW){
         avspaces[num_targs] = sqlite3_column_double(res,0);
         strcpy(mountpts[num_targs], sqlite3_column_text(res,1));
-        
+
 	//printf("Target: %s | Avspace: %lf\n", mountpts[num_targs], avspaces[num_targs]);
 
 	num_targs++;
@@ -203,7 +207,9 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
 
     // write each part to respective target
     //int target_num = 0;
+    int act_cnt = -1;   // possible solution to weird round robin behavior
     for (zi = 0; zi < parts; zi++) {
+        act_cnt = act_cnt + 1;
         if (num_targs == 0) {   // wala nang target pero meron pang part = HINDI NA KASYA :(
             printf("Targets is FULL. Cannot do this.\n");
             exit(1);
@@ -221,14 +227,14 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
         //printf("Filename : %s\n", filename);
 	//printf("Fullpath : %s\n", fullpath);
 
-        int target_num = zi % num_targs;
+        int target_num = act_cnt % num_targs;   // replace to act_cnt % zi if round robin fails to work
 	//printf("Target Num : %d\n", target_num);
 
         long curr_avspace = avspaces[target_num];
 	//printf("Curr Avspace = %lf\n", avspaces[target_num]);
         if (avspaces[target_num] < STRIPE_SIZE) {   // if hindi kasya sa target
             //printf("Hindi na kasya! Curr avspace : %ld | Stripe : %ld\n", curr_avspace, STRIPE_SIZE);
-	    num_targs--;
+            num_targs--;
             zi--;
             continue;
        }
@@ -279,7 +285,7 @@ void file_map_cache(String filename, String event_name){
     //printf("in filemapcache: cp: %s\n", cp);
     system(cp); //copy file to cache
 
-    printf("[+] Cache: part1.%s\n", event_name); 
+    printf("[+] Cache: part1.%s\n", event_name);
 
     //String file = "";
     //sprintf(file, "%s/part1.%s", CACHE_LOC, event_name);
