@@ -215,10 +215,6 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
             exit(1);
         }
 
-        //if (target_num == num_targs){
-	//    target_num = 0;
-        //}
-
         String filename = "";
         String fullpath = "";
         strcpy(filename, filenames[zi]);
@@ -234,7 +230,8 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
 	//printf("Curr Avspace = %lf\n", avspaces[target_num]);
         if (avspaces[target_num] < STRIPE_SIZE) {   // if hindi kasya sa target
             //printf("Hindi na kasya! Curr avspace : %ld | Stripe : %ld\n", curr_avspace, STRIPE_SIZE);
-            num_targs--;
+            num_targs = num_targs - (num_targs - target_num);
+            act_cnt = -1;   // reset
             zi--;
             continue;
        }
