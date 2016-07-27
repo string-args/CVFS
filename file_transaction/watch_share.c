@@ -195,7 +195,7 @@ void delete_folder(String root, String foldname){
 		}
 		//first remove it from share
 		String rm = "";
-		sprintf(rm, "rm -rf '%s/%s", SHARE_LOC, tempfoldpath);
+		sprintf(rm, "rm -rf '%s/%s'", SHARE_LOC, tempfoldpath);
 		system(rm);
 		printf("[-] %s: %s\n", SHARE_LOC, tempfoldpath);
 		
@@ -228,7 +228,7 @@ void delete_folder(String root, String foldname){
 		//since the subdirectory been removed, we must update the target size 
 		//for all the files there
 		char percent = '%';
-		sprintf(sql, "SELECT filename, filesize from VolContent where filename like '%s/%c", tempfoldpath, percent);
+		sprintf(sql, "SELECT filename, filesize from VolContent where filename like '%s/%c'", tempfoldpath, percent);
 		good = 0;
 		while (!good){
 			rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
