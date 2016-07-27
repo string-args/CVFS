@@ -151,24 +151,41 @@ void check_missing(String output_here){
 			
 			//check share if not found
 			if (access(dest, F_OK) != -1){
-				//do nothing
-				//printf("DO NOTHING!\n");
+				//do nothing here
 			} else {
-				//this is what we're looking for
-				//printf("INSERT HERE!\n");
-				//printf("tempname = %s\n", tempname);
+				//we found the filename what we are looking for!!
 				strcpy(output_here, tempname);
-				//printf("AFTER STCPY!\n");
 				break;
 			}
 		}
 	}
 	sqlite3_finalize(res);
 	sqlite3_close(db);
-	//printf("AFTER CLOSE DB!\n");	
-	//printf("FOUND := %s\n", found);
-	//exit(1);
-	//return found;
+}
+
+void delete_folder(String root, String foldname){
+	String foldpath = "";
+	//ex: if testfold is in share then foldpath = /mnt/Share/testfold
+	//ex: if testfold is inside testfold2 then foldpath = /mnt/Share/testfold2/testfold
+	sprintf(foldpath, "%s/%s", root, foldname);
+	
+	//we remove the "/mnt/Share/"
+	strcpy(foldpath, replace_str(foldpath, "/mnt/Share/", ""));
+	String tempfoldpath = "";
+	strcpy(tempfoldpath, foldpath);
+	//now we check if its a subdirectory, if its not then we don't have problem
+	if (strstr(foldpath, "/") != NULL){ //its a subdirectory!
+		String subdirname = "";
+		char *ptr = strtok(foldpath, "/");
+		while (ptr!= NULL){
+			strcpy(subdirname, ptr);
+			ptr = strtok(NULL, "/");
+		}
+		//remove it from CVFSFStorage
+		
+	} else {
+		
+	}
 }
 
 void delete_from_cache(String file){
@@ -549,15 +566,19 @@ void *watch_share()
 
 	     if (event->mask & IN_DELETE){
 		if (event->mask & IN_ISDIR){
-
+			int d;
+			for (d = 0; d < MAX_WTD; d++){
+				if (wds[d] == event->wd){
+					//this is the watch descriptor that trigger the deletion of folder
+					//dirs[d] contains the root dir of folder directory ex:
+					//dirs[d] = /mnt/Share/testfold, event->name = testfold2
+					delete_folder(dirs[d], event->name);
+					break;
+				}
+			}
 		} else {
 		
-			int d, i, rooti;
-			//printf("%s\n", event->name);
-			//String fullpath = "";
-			//sprintf(fullpath, "%s/%s/%s"
-
-			//printf("DELETE EVENT!\n");
+			int d;
 			for (d = 0; d < MAX_WTD; d++){
 				if (wds[d] == event->wd){
 
@@ -566,60 +587,50 @@ void *watch_share()
 					char buf[PATH_MAX+1];
 					sprintf(fullpath, "%s/%s", dirs[d], event->name);
 					char *res = realpath(fullpath, buf);
-			if (res){
-			//get the size
-			//two diff cases: linear and stripe
-			if (strstr(buf, "part1.") != NULL){
+					if (res){
+						if (strstr(buf, "part1.") != NULL){
 							//for stripe file
-			//if in cache
-			if (strstr(buf, "/mnt/CVFSCache") != NULL){
-			int status = 0;
-			String filename = "";
-			sprintf(filename, "part1.%s", event->name);
-			delete_from_cache(filename); //delete entry cachecontent
-			//printf("rm (cache) = %s\n", buf);
-			status = remove(buf);
-			if (status == 0){ //remove from cache
-				printf("[-] %s: %s\n", CACHE_LOC, buf); 
-			}
+							//if in cache
+							if (strstr(buf, "/mnt/CVFSCache") != NULL){
+								int status = 0;
+								String filename = "";
+								sprintf(filename, "part1.%s", event->name);
+								delete_from_cache(filename); //delete entry cachecontent
+								status = remove(buf);
+								if (status == 0){ //remove from cache
+									printf("[-] %s: %s\n", CACHE_LOC, buf); 
+								}
 
-			sprintf(filename, "%s/%s", dirs[d], event->name);
-			//printf("rm (share) = %s\n", filename);
-			status = remove(filename);
-			if (status == 0){ //remove from share
-				printf("[-] %s: %s\n", SHARE_LOC, event->name);
-			}
-			String target_file_path = "";
-			check_missing(target_file_path);
-			delete_stripe_file(target_file_path);
-			//printf("FILE LOCATION: %s\n", check_missing());
-			} else {
-				//not in cache how it will happen
-				int status = 0;
-				String f = "";
-				sprintf(f, "%s/%s", dirs[d], event->name);
-				status = remove(f);
-				if (status == 0){
-					printf("[-] %s: %s\n", SHARE_LOC, f);
-				}
-				String target_file_path = "";
-				strcpy(target_file_path, replace_str(f,"/mnt/Share/", ""));
-				delete_stripe_file(target_file_path);
+								sprintf(filename, "%s/%s", dirs[d], event->name);
+								//printf("rm (share) = %s\n", filename);
+								status = remove(filename);
+								if (status == 0){ //remove from share
+									printf("[-] %s: %s\n", SHARE_LOC, event->name);
+								}
+								String target_file_path = "";
+								check_missing(target_file_path);
+								delete_stripe_file(target_file_path);
+							} else {
+								//not in cache how it will happen
+								int status = 0;
+								String f = "";
+								sprintf(f, "%s/%s", dirs[d], event->name);
+								status = remove(f);
+								if (status == 0){
+									printf("[-] %s: %s\n", SHARE_LOC, f);
+								}
+								String target_file_path = "";
+								strcpy(target_file_path, replace_str(f,"/mnt/Share/", ""));
+								delete_stripe_file(target_file_path);
+							}
 
-			}
-
-			} else {
-				delete_linear_file(dirs[d], event->name);
-			}
-
+						} else {
+							delete_linear_file(dirs[d], event->name);
+						}
 					}
-						
-					//delete_linear_file(dirs[d], event->name);
-					//printf("DELETE LINEAR FILE!\n");
 					break;
 				}
 			}
-			//break;
 		}
 	     }
 
