@@ -164,6 +164,18 @@ void check_missing(String output_here){
 }
 
 void delete_folder(String root, String foldname){
+	
+	sqlite3 *db;
+	sqlite3_stmt *res;
+	int rc;
+	const char *tail;
+	rc = sqlite3_open(DBNAME, &db);
+	if (rc != SQLITE_OK){
+		fprintf(stderr, "Can't open database %s!\n", sqlite3_errmsg(db));
+		sqlite3_close(db);
+		exit(1);
+	}
+	
 	String foldpath = "";
 	//ex: if testfold is in share then foldpath = /mnt/Share/testfold
 	//ex: if testfold is inside testfold2 then foldpath = /mnt/Share/testfold2/testfold
@@ -181,11 +193,59 @@ void delete_folder(String root, String foldname){
 			strcpy(subdirname, ptr);
 			ptr = strtok(NULL, "/");
 		}
+		//first remove it from share
+		String rm = "";
+		sprintf(rm, "rm -rf '%s/%s", SHARE_LOC, tempfoldpath);
+		system(rm);
+		printf("[-] %s: %s\n", SHARE_LOC, tempfoldpath);
+		
 		//remove it from CVFSFStorage
+		String subdirpath = "";
+		sprintf(subdirpath, "%s/%s", STORAGE_LOC, foldname);
+		sprintf(rm, "rm -rf '%s'", subdirpath);
+		system(rm);
+		printf("[-] %s: %s\n", STORAGE_LOC, foldname);
+		
+		//remove the directory from all targets
+		String sql = "";
+		strcpy(sql, "SELECT mountpt from target;");
+		int good = 0;
+		while (!good){
+			rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
+			if (rc != SQLITE_OK){
+			} else {good = 1;}
+		}
+		//we have deleted successfully the folder from the targets
+		while (sqlite3_step(res) == SQLITE_ROW){
+			String fold_to_delete = "";
+			sprintf(fold_to_delete, "%s/%s", sqlite3_column_text(res,0), tempfoldpath);
+			sprintf(rm, "rm -rf '%s'", fold_to_delete);
+			system(rm);
+			printf("[-] %s: %s\n", sqlite3_column_text(res,0), tempfoldpath);
+		}
+		sqlite3_finalize(res);
+		
+		//since the subdirectory been removed, we must update the target size 
+		//for all the files there
+		char percent = '%';
+		sprintf(sql, "SELECT filename, filesize from VolContent where filename like '%s/%c", tempfoldpath, percent);
+		good = 0;
+		while (!good){
+			rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
+			if (rc != SQLITE_OK){
+			} else {good = 1;}
+		}
+		
+		while (sqlite3_step(res) == SQLITE_ROW){
+			//check if we retrieved correctly, test later
+			printf("Filename: %s | Filesize: %lf\n", sqlite3_column_text(res,0), sqlite3_column_double(res,1));
+		}
+		sqlite3_finalize(res);
 		
 	} else {
 		
 	}
+	sqlite3_close(db);
 }
 
 void delete_from_cache(String file){
