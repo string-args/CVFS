@@ -217,8 +217,6 @@ void *watch_temp()
 		      sprintf(filename, "%s%s", root, event->name);
                       FILE *fp;
                       sprintf(filepath, "%s/%s%s", TEMP_LOC, root, event->name);
-		      //syslog(LOG_INFO, "FileTransaction: FILEPATH := %s\n", filepath);
-		      //syslog(LOG_INFO, "FileTransaction: hahahaa: filepath:%s\n\tfilename:%s", filepath, filename);
                       fp = fopen(filepath, "rb");
                       if (fp != NULL){
                          fseek(fp, 0L, SEEK_END);
@@ -226,25 +224,9 @@ void *watch_temp()
                          rewind(fp);
                          //check if stripe file
                         if (sz > STRIPE_SIZE){
-                           //before striping, check cache
-			   //printf("STRIPED: %s | SIZE : %ld bytes\n", event->name, sz);
-                           //printf("%s will be striped.\n", event->name);
-			   //printf("Inserting into CacheContent...\n");
                            update_cache_list(event->name, root);
-                           //printf("Cache Count: %d\n", getCacheCount());
-                          // if (getCacheCount() < MAX_CACHE_SIZE) { //max cache size is 10
-                           //printf("Cache Size: %d\n", getCacheCount());
-			   //printf("%s will be put to cache.\n", filename);
                            file_map_cache(filename, event->name);
-                             //create_link_cache(filename);
-                          // }
-                           //stripe(event->n);
-                           //refreshCache();
-			   //printf("ROOT = %s\n", root);
-			   //printf("FILEPATH := %s\n", filepath);
-			   //printf("FILENAME := %s\n", filename);
 			   stripe(root, filepath, filename);
-			   //refreshCache();
                         } else {
 			   syslog(LOG_INFO, "FileTransaction: Transferring %s to targets...\n", filename);
                            file_map(filepath, filename, sz);
