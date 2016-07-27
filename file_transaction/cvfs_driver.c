@@ -9,6 +9,7 @@
 #include "../Global/global_definitions.h"
 #include "../disk_pooling/file_presentation.h"
 #include "../disk_pooling/initial_configurations.h"
+#include "../file_recovery/target_stat.h"
 #include "watch_share.h"
 #include "watch_dir.h"
 
@@ -76,7 +77,7 @@ int main(int argc, char *argv[]) {
         //pthread_create(&t[0], NULL, create_link, NULL);
         pthread_create(&t[0], NULL, watch_temp, NULL);
         pthread_create(&t[1], NULL, watch_share, NULL);
-        // pthread_create(&t[2], NULL, create_link, NULL);
+        //pthread_create(&t[2], NULL, check_target, NULL);
 
         for (i = 0; i < THREADCNT; i++) {
             pthread_join(t[i], NULL);

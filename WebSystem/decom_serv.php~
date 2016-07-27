@@ -12,9 +12,9 @@ chdir(trim($cvfs_dir));
 // name and path of decommissioning program
 $PROGNAME = './decomm';
 $ok = 'SUCCESS';
-list($iqn, $mountpt, $assocvol) = explode('|', $_POST['node']);
+list($iqn, $mountpt, $assocvol, $ipadd) = explode('|', $_POST['node']);
 // execute decommissioning program
-$comm = 'sudo ' . $PROGNAME . ' ' . $iqn . ' ' . $mountpt . ' ' . $assocvol . ' 2>&1';
+$comm = 'sudo ' . $PROGNAME . ' ' . $iqn . ' ' . $mountpt . ' ' . $assocvol . ' ' . $ipadd . ' 2>&1';
 echo "comm = " . $comm;
 $status = exec($comm, $pout);
 // we can print blah blah here, but we can really just redirect to fail / success page

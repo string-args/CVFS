@@ -193,13 +193,7 @@ void* check_target() {
 		strcpy(targets[counter], curradd);
                 //strcpy(prevadd, curradd);
 		counter++;
-            } else {
-		for (i = 0; i < MAX_TARGETS; i++){
-			if (strcmp(curradd, targets[i]) == 0){
-				strcpy(targets[i], "");
-			}
-		}
-		}
+            }
 
     	}
 	sqlite3_finalize(res);

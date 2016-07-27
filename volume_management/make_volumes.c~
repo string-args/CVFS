@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sqlite3.h>
 #include <syslog.h>
+#include <stdlib.h>
 
 #include "../Global/global_definitions.h"
 #include "../disk_pooling/initial_configurations.h"
@@ -40,9 +41,13 @@ void makeVolumeAdd(String ipadd){
     char *pch = strtok(avail_out, "\n");
     while (pch != NULL){
 	strcpy(currdisks[counter], pch);
+
+	printf("currdisk[%d]: %s\n", counter, currdisks[counter]);
+
 	counter++;
 	pch = strtok(NULL, "\n");
     }
+/*
 
     String newdisk = "";
     int counter2 = 0;
@@ -138,7 +143,7 @@ printf("mewdisk = %s\n", newdisk);
        strcpy(mountpt,"");
        strcpy(avspace,"");
 
-    sqlite3_close(db);
+    sqlite3_close(db);*/
 }
 
 void makeVolume(int update) {

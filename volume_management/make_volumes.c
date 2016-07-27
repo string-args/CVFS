@@ -41,9 +41,13 @@ void makeVolumeAdd(String ipadd){
     char *pch = strtok(avail_out, "\n");
     while (pch != NULL){
 	strcpy(currdisks[counter], pch);
+
+	printf("currdisk[%d]: %s\n", counter, currdisks[counter]);
+
 	counter++;
 	pch = strtok(NULL, "\n");
     }
+
 
     String newdisk = "";
     int counter2 = 0;
@@ -98,6 +102,11 @@ printf("mewdisk = %s\n", newdisk);
        printf("PV = %s\n", pvs);
        printf("VG = %s\n", vgs);
        printf("LV = %s\n", lvs);
+       printf("MKFS = %s\n", mkfs);
+	printf("MOUNT = %s\n", mount);
+      printf("MKDIR = %s\n", mkdir);
+	printf("CHMOD = %s\n", chmod);
+
        // execute commands
        system(pvs);
        system(vgs);

@@ -19,13 +19,22 @@
 static int callback(void *used, int argc, char **argv, char **colname) {
 	int i;
 	String comm = "";
+	printf("exec -1\n");
 	long occsp = (long)used;
+	printf("exec 0\n");
+	printf("argc = %d\n", argc);
+	printf("argv[0] = %s\n", argv[0]);
 	if(argc != 1) {
 		fprintf(stderr, "Error in database table: missing columns\n");
 		printf("FAILED0");
 		exit(1);
 	} else {
 		// compare if the available space in other targets can accomodate
+		if (argv[0] == NULL) {
+			printf("You cannot decommission, not enough space.\n");
+			printf("FAILED1");
+			exit(0);
+		}
 		// the occupied space in the leaving node
 		long total_av = atol(argv[0]);
 		printf("total available space = %ld\n", total_av);
@@ -50,19 +59,20 @@ int main(int argc, char *argv[]) {
 
 	openlog("cvfs2", LOG_PID|LOG_CONS, LOG_USER);
 
-	if(argc != 4){
+	if(argc != 5){
 		printf("FATAL: Program takes exactly 3 arguments.\n");
 		printf("Usage:\n");
-		printf("\tdecomm <IQN> <mount point> <vg_name>\n");	// this is to limit db queries
+		printf("\tdecomm <IQN> <mount point> <vg_name> <ip_add>\n");	// this is to limit db queries
 		printf("FAILED2");
 		exit(1);
 	}
 
 	// at this point, we assume that the IQN is valid
-	String iqn = "", query = "", lvname = "", comm = "", comm_out = "", dmount = "", query2 = "";
+	String iqn = "", query = "", lvname = "", comm = "", comm_out = "", dmount = "", query2 = "", ipadd = "";
 	strcpy(iqn, argv[1]);
 	strcpy(dmount, argv[2]);	// mount point of leaving node
 	strcpy(lvname, argv[3]); 	//logical volume group name
+	strcpy(ipadd, argv[4]);
 	syslog(LOG_INFO, "decomm: Decommissioning of target %s mounted at %s\n", iqn, dmount);
 	printf("IQN = %s\n", iqn);
 	//sizex = <occupied space in x>
@@ -82,19 +92,19 @@ int main(int argc, char *argv[]) {
 	}
 
 	sprintf(query, "SELECT sum(avspace) FROM Target WHERE iqn != '%s';", iqn);
-	rc = sqlite3_exec(db, query, callback, (void *)occsp, &errmsg);
-	if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL Error: %s\n", errmsg);
-		sqlite3_free(errmsg);
-	}
+	do {
+		rc = sqlite3_exec(db, query, callback, (void *)occsp, &errmsg);
+	} while (rc == SQLITE_BUSY);
 
-
+	printf("done done!");
 	// put decommissioning code here
 	// removing node in the target db
 	strcpy(query, "");
 	sprintf(query, "DELETE FROM Target WHERE iqn = '%s';", iqn);
 	printf("before delete\n");
-	rc = sqlite3_exec(db, query, 0, 0, &errmsg);
+	do {
+		rc = sqlite3_exec(db, query, 0, 0, &errmsg);
+	} while (rc == SQLITE_BUSY);
 	if (rc != SQLITE_OK) {
 		fprintf(stderr, "SQL Error: %s\n", errmsg);
 		sqlite3_free(errmsg);
@@ -110,13 +120,10 @@ int main(int argc, char *argv[]) {
 	sprintf(query, "SELECT filename FROM VolContent WHERE fileloc = '%s';", dmount);
 	sqlite3_stmt *res, *res2;
 	const char *tail;
-	rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
-    if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL Error: %s.\n", sqlite3_errmsg(db));
-		sqlite3_close(db);
-		printf("FAILED5");
-		exit(1);
-    }
+	
+    	do {
+		rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
+	} while (rc == SQLITE_BUSY);
 
 	String filename = "", newloc = "";
 	String longname = "";	// long filename
@@ -125,14 +132,16 @@ int main(int argc, char *argv[]) {
     while (sqlite3_step(res) == SQLITE_ROW) {
 		strcpy(filename, sqlite3_column_text(res, 0));	// file in dmount
 		// select target(tid, mountpt) with most available space (same with file_map)
+		String rm = "";
+		sprintf(rm, "rm %s/%s", SHARE_LOC, filename);
+		system(rm);
+
+
 		strcpy(query2, "SELECT avspace, mountpt, tid FROM TARGET WHERE avspace = (SELECT max(avspace) from Target);");
+		
+	    do {
 		rc = sqlite3_prepare_v2(db, query2, 1000, &res2, &tail);
-	    if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL Error: %s.\n", sqlite3_errmsg(db));
-			sqlite3_close(db);
-			printf("FAILED6");
-			exit(1);
-	    }
+	    } while (rc == SQLITE_BUSY);
 	    if (sqlite3_step(res2) == SQLITE_ROW) {
 			newavspace = sqlite3_column_double(res2,0);
 			strcpy(newloc, sqlite3_column_text(res2, 1));
@@ -148,24 +157,18 @@ int main(int argc, char *argv[]) {
 		// update volcontent
 		strcpy(query2, "");
 		sprintf(query2, "UPDATE VolContent SET fileloc = '%s' WHERE filename = '%s'", newloc, filename);
+	do {
 		rc = sqlite3_exec(db, query2, 0, 0, &errmsg);
-		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL Error on UPDATE VolContent: %s\n", errmsg);
-			sqlite3_free(errmsg);
-			printf("FAILED7");
-			exit(1);
-		}
+	} while (rc == SQLITE_BUSY);
+
 
 		// update cache content
 		strcpy(query2, "");
 		sprintf(query2, "UPDATE CacheContent SET mountpt = '%s' WHERE filename = '%s'", newloc, filename);
-		rc = sqlite3_exec(db, query2, 0, 0, &errmsg);
-		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL Error on UPDATE CacheContent: %s\n", errmsg);
-			sqlite3_free(errmsg);
-			printf("FAILED8");
-			exit(1);
-		}
+		
+		do {
+			rc = sqlite3_exec(db, query2, 0, 0, &errmsg);
+		} while (rc == SQLITE_BUSY);
 
 		// update target to decrease avspace
 		strcpy(longname, "");	// di ko alam bakit pero takot ako lagi baka mag segmentation fault so ninunull ko nlng
@@ -178,13 +181,9 @@ int main(int argc, char *argv[]) {
 		printf("newavspace = %lf\n", newavspace);
 		printf("size=%lf\n", sz);
 		sprintf(query2, "UPDATE Target SET avspace = '%lf' WHERE tid = '%d';", newavspace, newtid);
-		rc = sqlite3_exec(db, query2, 0, 0, &errmsg);
-		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL Error on UPDATE Target: %s\n", errmsg);
-			sqlite3_free(errmsg);
-			printf("FAILED9");
-			exit(1);
-		}
+		do {
+			rc = sqlite3_exec(db, query2, 0, 0, &errmsg);
+		} while (rc == SQLITE_BUSY);
 	}
 
 
@@ -192,19 +191,30 @@ int main(int argc, char *argv[]) {
     sqlite3_finalize(res);
 	// yehey tapos na?
 
+	
 	//unmount
    	String umount = "";
-   	sprintf(umount, "umount '%s'", dmount);
+   	sprintf(umount, "umount -l '%s'", dmount);
+	printf("umount = %s\n", umount);
    	system(umount);
+
+	//logout of iscsitarget
+	String logout = "";
+	sprintf(logout, "iscsiadm -m node -u -T %s -p %s:3260", iqn, ipadd);
+	printf("logout = %s\n", logout);
+	system(logout);	
+
    	
    	//remove folder
    	String rm = "";
-   	sprintf(rm, "rmdir '%s'", dmount);
+   	sprintf(rm, "rm -rf '%s'", dmount);
+	printf("rm = %s\n", rm);
    	system(rm);
    	
    	//remove logical volume
    	String lvremove = "";
-   	sprintf(lvremove, "lvremove '%s'", lvname);
+   	sprintf(lvremove, "lvremove -f '%s'", lvname);
+	printf("lvrem = %s\n", lvremove);
   	system(lvremove);
   
   	//remove volume group
@@ -220,11 +230,21 @@ int main(int argc, char *argv[]) {
   		if (counter == 2)
   			break;
   	}
-  	sprintf(vgremove, "vgremove -a n '%s'", vgname);
+  	sprintf(vgremove, "vgremove -f '%s'", vgname);
   	printf("vgremove = %s\n", vgremove);
   	system(vgremove);
   	
-  
+
+	String pvremove = "";
+
+	String newpt = "";
+	strcpy(newpt, dmount);
+	memmove(newpt, newpt + strlen("/mnt/lv"), 1 + strlen(newpt + strlen("/mnt/lv")));
+	sprintf(pvremove, "pvremove -ff '%s'", newpt);
+	printf("pvremove = %s\n", newpt);
+	system(pvremove);  
+
+	system("cat /proc/partitions > AvailableDisks.txt");
 
 	// close db
 	sqlite3_close(db);
