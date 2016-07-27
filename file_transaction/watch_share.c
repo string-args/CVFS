@@ -328,13 +328,16 @@ void delete_stripe_file(String file){
 		if (sqlite3_step(res2) == SQLITE_ROW){
 			//get avspace of target;
 			avspace = sqlite3_column_double(res2,0);
-			//printf("avspace = %lf\n", avspace);
+			printf("avspace = %lf\n", avspace);
 		}
 		sqlite3_finalize(res2);
 
-		avspace = avspace + sqlite3_column_double(res,3);
+		printf("FILESIZE: %lf\n", sqlite3_column_double(res,2));
+		avspace = avspace + sqlite3_column_double(res,2);
+		
 		//update target size here
 		sprintf(sql2, "Update target set avspace = %lf where mountpt = '%s';", avspace, sqlite3_column_text(res,1));
+		printf("sql2 = %s\n", sql2);
 		//printf("SQL3 = %s\n", sql2);
 		good = 0;
 		while (!good){
