@@ -67,7 +67,7 @@ void assemble_cache_file(String filename, String root){
 
   //syslog(LOG_INFO, "VolumeManagement: PART1 OF THE FILE: %s/%s", ftemploc,ftemp);
    system(comm);
- 
+
    printf("ASSEMBLY FINISHED!\n");
 
    syslog(LOG_INFO, "VolumeManagement: Assembled File: %s/%s\n", ASSEMBLY_LOC, assfile);
@@ -269,7 +269,7 @@ void disassemble(String filename){
 		}else {good = 1;}
 	}
 	if (sqlite3_step(res) == SQLITE_ROW){
-		strcpy(root, sqlite3_column_text(res,0)); 
+		strcpy(root, sqlite3_column_text(res,0));
 	}
 	sqlite3_finalize(res);
 

@@ -18,7 +18,7 @@
 void kick_target(String mountpt, String iqn, String assocvol, String ipadd) {
     int rc;
     sqlite3 *db;
-    sqlite3_stmt *res;
+    sqlite3_stmt *res, *res2, *res3;
     const char *tail;
     char *errmsg = 0;
     String query = "";
@@ -32,7 +32,7 @@ void kick_target(String mountpt, String iqn, String assocvol, String ipadd) {
     // delete from volcontent where mountpt = mounpt
     strcpy(query, "");
 
-    sprintf(query, "SELECT filename from Volcontent Where fileloc = '%s';", mountpt);
+    sprintf(query, "SELECT filename, partno from Volcontent Where fileloc = '%s';", mountpt);
     int good = 0;
     while (!good){
 	rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
@@ -42,10 +42,79 @@ void kick_target(String mountpt, String iqn, String assocvol, String ipadd) {
     }
 
     while (sqlite3_step(res) == SQLITE_ROW){
-	printf("filename = %s\n", sqlite3_column_text(res,0));
+        String filename = "";
+        int partno = sqlite3_column_int(res, 1);
+        strcpy(filename, sqlite3_column_text(res,0));
+        printf("filename = %s\n", sqlite3_column_text(res,0));
+        // if stripe delete from other targets:
+        if (partno != 0) {
+            // get filename without partX
+            String root = "";
+            String withoutroot = "";
+            char* pch = NULL;
+            String filename2 = "";
+            strcpy(filename2, filename);
+            pch = strtok(filename2, "/");
+        	while (pch != NULL){
+                strcat(root, pch);
+                strcpy(withoutroot, pch);
+                strcat(root, "/");
+                pch = strtok(NULL, "/");
+            }
+            root[strlen(root) - (strlen(withoutroot) + 2)] = '\0';
+            printf("check if root is correct = %s\n", root);
+
+            // remove partX. from withoutroot
+            String partx = "";
+            sprintf(partx, "part%d.", partno);
+            memmove(withoutroot, withoutroot + strlen(partx), 1 + strlen(withoutroot + strlen(partx)));
+            printf("should not have partx now = %s\n", withoutroot);
+
+            char percent = '%';
+            sprintf(query, "SELECT filename, mountpt from Volcontent Where filename LIKE '%s/part%c.%s';", root, percent, withoutroot);
+            int good = 0;
+            while (!good){
+        	rc = sqlite3_prepare_v2(db, query, 1000, &res2, &tail);
+        	if (rc == SQLITE_OK){
+        		good = 1;
+        	}
+            }
+            while (sqlite3_step(res2) == SQLITE_ROW) {
+                // delete it
+                // delete it from table
+                String fn2, mpt2 = "";
+                strcpy(fn2, sqlite3_column_text(res2,0));   // filename
+                strcpy(mpt2, sqlite3_column_text(res2,1));  // mountpt
+                String rm = "";
+                sprintf(rm, "rm %s/%s", mpt2, fn2);
+                printf("kick: rm = %s\n", rm);
+                system(rm);
+                // delete it from volcontent
+                sprintf(query, "DELETE FROM Volcontent Where filename = '%s';", fn2);
+                do {
+            		rc = sqlite3_exec(db, query, 0, 0, &errmsg);
+            	} while (rc == SQLITE_BUSY);
+                printf("kick deleted from voclontetn\n");
+            }
+        } else {
+            // linear file, just delete
+            String rm = "";
+            sprintf(rm, "rm %s/%s", mountpt, filename);
+            printf("kick: rm(linear) = %s\n", rm);
+            system(rm);
+            // delete it from volcontent
+            sprintf(query, "DELETE FROM Volcontent Where filename = '%s';", filename);
+            do {
+                rc = sqlite3_exec(db, query, 0, 0, &errmsg);
+            } while (rc == SQLITE_BUSY);
+            printf("kick deleted from voclontetn\n");
+        }
+
+
     }
     sqlite3_finalize(res);
 /*
+    // i think this one not needed
 	sprintf(query, "DELETE FROM VolContent WHERE fileloc = '%s';", mountpt);
 	good = 0;
 	while (!good){
@@ -56,6 +125,7 @@ void kick_target(String mountpt, String iqn, String assocvol, String ipadd) {
 	}
 
 /*
+    // but this one is needed i thik?
     // delete from cache content
     strcpy(query, "");
 	sprintf(query, "DELETE FROM CacheContent WHERE mountpt = '%s';", mountpt);
@@ -96,7 +166,7 @@ void kick_target(String mountpt, String iqn, String assocvol, String ipadd) {
     //remove folder
     String rm = "";
     sprintf(rm, "rm -rf '%s'", mountpt);
-    printf("rm = %s\n", rm); 
+    printf("rm = %s\n", rm);
     system(rm);
 
     //remove logical volume
@@ -180,16 +250,16 @@ void* check_target() {
             strcpy(assocvol, sqlite3_column_text(res,3));
 	    printf("curradd to check = %s\n", curradd);
             if(!is_target_up(curradd)) {  // if down,
-		
+
 		for (i = 0; i < MAX_TARGETS; i++){
 // down for 10 mins?! get outta my network!
 			if(strcmp(curradd, targets[i]) == 0){
 			printf("curradd = %s | prevadd = %s\n", curradd, targets[i]);
 				      kick_target(mountpt, iqn, assocvol, curradd);
-            
+
 			}
 		}
-  
+
 		strcpy(targets[counter], curradd);
                 //strcpy(prevadd, curradd);
 		counter++;
@@ -208,7 +278,7 @@ void* check_target() {
         sleep(INTERVAL);
     }
 	//counter = 0;
-	
+
 sqlite3_close(db);
 }
 
@@ -219,4 +289,3 @@ int main() {
     return 0;
 
 }*/
-
