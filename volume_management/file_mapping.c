@@ -150,8 +150,14 @@ void file_map(String fullpath, String filename, long sz){
        update_list(db, filename, sqlite3_column_text(res,1));
    } else {
        // did not fetch anything, probably targets are full, cannot fit this file inside
-       printf("Targets is FULL. Cannot do this.\n");
-       exit(1);
+       printf("Targets FULL. Cannot do this.\n");
+       // delete file in TEMP_LOC
+       String rm = "";
+       sprintf(rm, "rm %s", fullpath);
+       printf("file_map: rm = %s\n", rm);
+       system(rm);
+       printf("Nilinis ko na yung kinalat mong file.");
+       //exit(1);
    }
 
     sqlite3_finalize(res);
@@ -171,7 +177,6 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
     char *err = 0;
     const char *tail;
 
-    sprintf(sql, "SELECT avspace, mountpt FROM Target WHERE avspace >= %ld ORDER BY avspace DESC;", STRIPE_SIZE);
 
     rc = sqlite3_open(DBNAME, &db); /*Open database*/
     if (rc != SQLITE_OK){
@@ -180,8 +185,31 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
        exit(1);
     }
 
-    //printf("IN FILE_MAP_STRIPE FUNCTION!\n");
+    // check kung kasya
+    sprintf(sql, "SELECT sum(avspace) FROM Target;");
     int good = 0;
+     while(!good) {
+    rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
+    if (rc != SQLITE_OK) {
+        //printf("FILE MAP: SQL Error: %s\n", sqlite3_errmsg(db));
+    } else {
+        good = 1;
+    }
+      }
+    long totalspace = 0;
+    if(sqlite3_step(res) == SQLITE_ROW) {
+        totalspace = sqlite3_column_double(res,0);
+    }
+    if (totalspace / STRIPE_SIZE < parts) {
+        printf("Targets FULL. Cannot do this.\n");
+        exit(1);
+    }
+
+
+    sprintf(sql, "SELECT avspace, mountpt FROM Target WHERE avspace >= %ld ORDER BY avspace DESC;", STRIPE_SIZE);
+
+    //printf("IN FILE_MAP_STRIPE FUNCTION!\n");
+    good = 0;
      while(!good) {
     rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
     if (rc != SQLITE_OK) {
@@ -200,7 +228,7 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
 
 	//printf("Target: %s | Avspace: %lf\n", mountpts[num_targs], avspaces[num_targs]);
 
-	num_targs++;
+	   num_targs++;
     }
 
     //printf("Num targs: %d\n", num_targs);
@@ -216,7 +244,7 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
     for (zi = 0; zi < parts; zi++) {
         act_cnt = act_cnt + 1;
         if (num_targs == 0) {   // wala nang target pero meron pang part = HINDI NA KASYA :(
-            printf("Targets is FULL. Cannot do this.\n");
+            printf("Targets FULL. Cannot do this.\n");
             exit(1);
         }
 
