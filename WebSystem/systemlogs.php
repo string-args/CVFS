@@ -3,6 +3,8 @@
 <body>
 <?php
 
+include 'base.php';
+
 $comm = "sudo cat /var/log/syslog | grep cvfs2";
 $status = exec($comm, $pout);
 

@@ -3,6 +3,8 @@
 <body>
 <?php
 
+include 'base.php';
+
 $comm = "sudo cat /var/log/samba-audit.log";
 $status = exec($comm, $pout);
 

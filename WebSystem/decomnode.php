@@ -10,6 +10,7 @@
         </style>
     </head>
     <body>
+        <?php include 'base.php'; ?>
         <h1>Select from available nodes</h1>
         <form action="decom_serv.php" method="post">
         <?php
