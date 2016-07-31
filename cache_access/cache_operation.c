@@ -10,9 +10,19 @@
 #include "../Utilities/cmd_exec.h"
 #include "../disk_pooling/file_presentation.h"
 #include "../volume_management/file_assembly.h"
+#include "../file_transaction/watch_share.h"
 #include "cache_operation.h"
 
 #define CLISTSIZE	20 		// number of files in cache allowed to be listed
+
+static int callback(void *NotUsed, int argc, char **argv, char **azColName){
+   int i;
+   for (i = 0; i < argc; i++){
+	printf("%s = %s\n", azColName[i], argv[i]?argv[i] : "NULL");
+   }
+   printf("\n");
+   return 0;
+}
 
 //increment the frequency of the file
 void incrementFrequency(String filename){
@@ -31,11 +41,15 @@ void incrementFrequency(String filename){
       exit(1);
    }
 
+   String pragma = "";
+   strcpy(pragma, "PRAGMA journal_mode=WAL;");
+   rc = sqlite3_exec(db, pragma, 0, 0, 0);
+
    sprintf(query, "UPDATE CacheContent SET frequency = frequency + 1 WHERE filename = '%s';", filename);
 
   int good = 0;
   while(!good) {
-	rc = sqlite3_exec(db, query, 0, 0, &errmsg);
+	rc = sqlite3_exec(db, query, callback, 0, &errmsg);
 	if (rc != SQLITE_OK) {
 		printf("Increment frequency: DB Error %s\n", sqlite3_errmsg(db));
 	} else {
@@ -59,21 +73,33 @@ void update_cache_list(String filename, String root){
 
    sprintf(query, "INSERT INTO CacheContent (filename, mountpt, frequency) VALUES ('part1.%s', '%s', 1);", filename, root);
    rc = sqlite3_open(DBNAME, &db);
-   if (rc != SQLITE_OK){
+   if (rc){
       fprintf(stderr, "Can't open database %s\n", sqlite3_errmsg(db));
       sqlite3_close(db);
       exit(1);
+   } else {
+      fprintf(stderr, "UpdateCacheList(): Opened database successfully!\n");
    }
+
+   String pragma = "";
+   strcpy(pragma, "PRAGMA journal_mode=WAL;");
+   rc = sqlite3_exec(db, pragma, callback, 0, &errmsg);
+
+   printf("query = %s\n", query);
 
    int good = 0;
    while (!good){
-   	rc = sqlite3_exec(db, query, 0, 0, &errmsg);
+   	rc = sqlite3_exec(db, query, callback, 0, &errmsg);
    	if (rc != SQLITE_OK){
-        printf("Update Cache list: DB Error %s\n", sqlite3_errmsg(db));
-   	} else {
+        //rc = sqlite3_open(DBNAME, &db);
+        	//printf("Update Cache list: DB Error %s\n", sqlite3_errmsg(db));
+   		//sqlite3_free(errmsg);
+	} else {
 		good = 1;
+		fprintf(stdout, "Update Cache List successfully!\n");
 	}
    }
+   printf("done with update cache!\n");
    sqlite3_close(db);
    //syslog(LOG_INFO, "CacheAccess: Inserted Successfully!\n");
 }
@@ -216,7 +242,7 @@ void refreshCache(){
 
 
 //refresh cache: follows least frequency
-void refreshCache(){
+void* refreshCache(){
     sqlite3 *db;
     sqlite3_stmt *res;
     char *errmsg = 0;
@@ -288,6 +314,10 @@ void refreshCache(){
        exit(1);
     }
 
+    String pragma = "";
+    strcpy(pragma, "PRAGMA journal_mode=WAL;");
+    rc = sqlite3_exec(db, pragma, 0, 0, 0);
+//while(1){
     //store all the files in cachecontent and get their mountpoints
     //this is another solution to the code below where you select mountpt where filename = filename
     //i did this because the database didn't unlock
@@ -343,19 +373,33 @@ void refreshCache(){
 
 	      //String file_to_be_assembled = "";
 	      //sprintf(file_to_be_assembled, "%s%s", root, filename);
+	      FILE *fp = fopen("is_assembling.txt", "w");
+	      fprintf(fp, "1");
+	      fclose(fp);
 	      assemble_cache_file(filename, root);
-
+              fp = fopen("is_assembling.txt", "w");
+	      fprintf(fp, "0");
+              fclose(fp);
+   
+	      String temp = "";
+	      strcpy(temp, file);
               memmove(file, file+strlen("part1."), 1+strlen(file+strlen("part1.")));
-	      sprintf(rm, "rm '%s/%s%s'", SHARE_LOC, root, file);
+	      //sprintf(rm, "rm '%s/%s%s'", SHARE_LOC, root, file);
 	      //printf("cache: rm = %s\n", rm);	// might have error here if root does not have a / at the end, so we print to know
 	      
-              printf("[-] %s: %s%s", SHARE_LOC, root, file);
+              //printf("[-] %s: %s%s", SHARE_LOC, root, file);
 
-		printf("IN REFRESH CACHE!\n");
+	      String update = "";
+	      sprintf(update, "ln -snf '%s/%s' '%s/%s%s'", CACHE_LOC, temp, SHARE_LOC, root, file);
+	      printf("update link = %s\n", update);
+	      system(update);
+	      
+
+		//printf("IN REFRESH CACHE!\n");
 	      //system(rm);
 		//exit(1);
 	      // commented code below, since file_presentation should auto create link?
-	      create_link();		// uncommented already because its aidz code
+	      //create_link();		// uncommented already because its aidz code
               //create_link_cache(filename);
            }
     }
@@ -384,46 +428,65 @@ void refreshCache(){
        if (strcmp(filename, "") != 0){
 	  //printf("LAST LOOP : CONTENTS[%d] := %s\n", i, contents[i]);
           strcpy(comm, "");
-          sprintf(comm, "rm '%s/%s'", CACHE_LOC, filename);
-	  	  printf("COMM (rm from cache) = %s\n", comm);
-	  	  // get the root from cachecontent db, since all striped files are placed in the db, we can get it from db
-	  	  // verify that: filename in cache content == filename in /mnt/CVFSCache or query will not work properly
-		  int i = 0;
-		  String root = "";
-                  for (i = 0; i < counter; i++){
-			if (strcmp(cache_files[i], filename) == 0){
-				strcpy(root, cache_roots[i]);
-				break;
-			}
-                  }
+          sprintf(comm, "rm -rf '%s/%s'", CACHE_LOC, filename);
+	  printf("COMM (rm from cache) = %s\n", comm);
 
-	  	  //sqlite3_finalize(res);
-	  	  strcpy(comm1, "");
-	  	  memmove(filename, filename+strlen("part1."), 1+strlen(filename+strlen("part1.")));
-          //sprintf(comm1, "rm '%s/%s%s'", SHARE_LOC, root, filename);
-          //printf("COMM1 (remove from share) = %s\n", comm1);
-          //syslog(LOG_INFO, "CacheAccess: comm = %s\n", comm);
-          system(comm);
+          int i = 0;
+          String root = "";
+          for (i = 0; i < counter; i++){
+	     if (strcmp(cache_files[i], filename) == 0){
+		strcpy(root, cache_roots[i]);
+		break;
+	     }
+          }
+
+	  //String comm1 = "";
+	  //sprintf(comm1, "rm -rf '%s/%s%s'", SHARE_LOC,root,filename);
+	  //printf("comm (remove from share) = %s\n", comm1);
+
+	  //update link here...
+	  sqlite3_stmt *res2;
+	  String file = "", mountpt = "";
+	  sprintf(file, "%s%s", root, filename);
+          String sql = "";
+	  sprintf(sql, "SELECT fileloc from volcontent where filename = '%s';", file);
+	  printf("sql = %s\n", sql);
+	  good = 0;
+	  while (!good){
+	  	rc = sqlite3_prepare_v2(db, sql, 1000, &res2, &tail);
+	  	if (rc == SQLITE_OK){
+			good = 1;
+		} else {
+			//printf("locked!\n");
+		}
+	  }
+
+	  if (sqlite3_step(res2) == SQLITE_ROW){
+		strcpy(mountpt, sqlite3_column_text(res2,0));
+		printf("mountpt = %s\n", mountpt);
+	  }
+	  sqlite3_finalize(res2);
+
+	  String ln = "";
+	  String name1 = "";
+	  strcpy(name1, file);
+	  //strcpy(name1, replace_str(file,"part1.",""));
+	  strcpy(name1, replace_str(name1,"part1.",""));
+	  sprintf(ln, "ln -snf '%s/%s' '%s/%s'", mountpt, file, SHARE_LOC, name1);
+	  printf("ln = %s\n", ln);
+	  system(ln);
+
+	  //system(comm1);
+	  //create_link();
+	  system(comm);
+
           syslog(LOG_INFO, "CacheAccess: Removing %s in Cache...\n", filename);
 	  //system(comm1);
-	  syslog(LOG_INFO, "CacheAccess: Removing %s in Share...\n", filename);
-          //update link cache here....
-	  create_link();			// commented this, not sure if it is automatic, OK UNCOMMENTED BECAUSE AIDZ CODE
-	/*
-	String query1;
-	  sprintf(query1, "SELECT fileloc FROM VolContent where filename = '%s';", contents[i]);
-	  rc = sqlite3_prepare_v2(db, query1, 1000, &res, &tail);
-	  if (rc != SQLITE_OK){
-		fprintf(stderr, "Error Prepare V2 in Update Link Cache!\n");
-	  }
-	  if (sqlite3_step(res) == SQLITE_ROW){
-		String fileloc;
-		sprintf(fileloc, "%s", sqlite3_column_text(res,0));
-		update_link_cache(contents[i], fileloc);
-	  }
-	  sqlite3_finalize(res);*/
+	  syslog(LOG_INFO, "CacheAccess: Removing %s in Share....\n", filename);
       }
-    }
+  // }
+   //printf("tapos na ang ref cache");    
+ }
    //sqlite3_finalize(res);
     sqlite3_close(db);
     printf("tapos na ang ref cache");

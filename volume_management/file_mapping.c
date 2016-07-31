@@ -10,6 +10,15 @@
 #include "../cache_access/cache_operation.h"
 #include "file_mapping.h"
 
+static int callback(void *NotUsed, int argc, char **argv, char **azColName){
+	int i;
+	for (i = 0; i < argc; i++){
+		printf("%s = %s\n", azColName[i], argv[i]?argv[i]:"NULL");
+	}
+	printf("\n");
+	return 0;
+}
+
 void update_target_size(sqlite3 *db, String filename, const char* fileloc){
     int rc;
 
@@ -44,11 +53,11 @@ void update_target_size(sqlite3 *db, String filename, const char* fileloc){
        avspace = avspace - sz;
        sprintf(sql, "UPDATE Target SET avspace = %lf WHERE mountpt = '%s';", avspace, fileloc);
     }
-    // sqlite3_finalize(res);
+     sqlite3_finalize(res);
 
     int good = 0;
     while (!good){
-    	rc = sqlite3_exec(db, sql, 0, 0, &err);
+    	rc = sqlite3_exec(db, sql, callback, 0, &err);
     	if (rc != SQLITE_OK){
 		//printf("Update Target: SQL Error: %s\n", sqlite3_errmsg(db));
 	} else {good = 1;}
@@ -59,7 +68,7 @@ void update_target_size(sqlite3 *db, String filename, const char* fileloc){
        fprintf(stderr, "SQL Error: %s\n", err);
        sqlite3_free(err);
     }
-    sqlite3_finalize(res);
+    //sqlite3_finalize(res);
 }
 
 
@@ -87,7 +96,7 @@ void update_list(sqlite3 *db, String filename, const char* fileloc){
 
    int good = 0;
     while (!good){
-    	rc = sqlite3_exec(db, sql, 0, 0, &err);
+    	rc = sqlite3_exec(db, sql, callback, 0, &err);
     	if (rc != SQLITE_OK){
        		good = 0;
 		//printf("Update List: SQL Error: %s\n", sqlite3_errmsg(db));
@@ -125,6 +134,10 @@ void file_map(String fullpath, String filename, long sz){
        exit(1);
     }
 
+    String pragma = "";
+    strcpy(pragma, "PRAGMA journal_mode=WAL;");
+    rc = sqlite3_exec(db, pragma, 0, 0, 0);
+
     //printf("IN FILE_MAP FUNCTION!\n");
     int good = 0;
      while(!good) {
@@ -153,7 +166,7 @@ void file_map(String fullpath, String filename, long sz){
        printf("Targets FULL. Cannot do this.\n");
        // delete file in TEMP_LOC
        String rm = "";
-       sprintf(rm, "rm %s", fullpath);
+       sprintf(rm, "rm '%s'", fullpath);
        printf("file_map: rm = %s\n", rm);
        system(rm);
        printf("Nilinis ko na yung kinalat mong file.");
@@ -166,6 +179,7 @@ void file_map(String fullpath, String filename, long sz){
 }
 
 void file_map_stripe(String *fullpaths, String *filenames, int parts) {
+    printf("in file_map_stripe function!\n");
     int rc;
 
     String sql;
@@ -184,7 +198,11 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
        sqlite3_close(db);
        exit(1);
     }
-
+ 
+    String pragma = "";
+    strcpy(pragma, "PRAGMA journal_mode=WAL;");
+    rc = sqlite3_exec(db, pragma, 0, 0, 0);
+ 
     // check kung kasya
     sprintf(sql, "SELECT sum(avspace) FROM Target;");
     int good = 0;
@@ -200,14 +218,14 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
     if(sqlite3_step(res) == SQLITE_ROW) {
         totalspace = sqlite3_column_double(res,0);
     }
-    if (totalspace / STRIPE_SIZE < parts) {
-        printf("Targets FULL. Cannot do this.\n");
-        exit(1);
-    }
+    //if (totalspace / STRIPE_SIZE < parts) {
+    //    printf("Targets FULL. Cannot do this.\n");
+    //    exit(1);
+   // }
 
 
     sprintf(sql, "SELECT avspace, mountpt FROM Target WHERE avspace >= %ld ORDER BY avspace DESC;", STRIPE_SIZE);
-
+    printf("sql = %s!\n", sql);
     //printf("IN FILE_MAP_STRIPE FUNCTION!\n");
     good = 0;
      while(!good) {
@@ -230,7 +248,8 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
 
 	   num_targs++;
     }
-
+    sqlite3_finalize(res);
+    printf("num targets = %d\n", num_targs);
     //printf("Num targs: %d\n", num_targs);
     //for checking
     //int pi = 0;
@@ -244,7 +263,8 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
     for (zi = 0; zi < parts; zi++) {
         act_cnt = act_cnt + 1;
         if (num_targs == 0) {   // wala nang target pero meron pang part = HINDI NA KASYA :(
-            printf("Targets FULL. Cannot do this.\n");
+            printf("stripe function cannot do this\n");
+	    printf("Targets FULL. Cannot do this.\n");
             exit(1);
         }
 
@@ -290,7 +310,7 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
     }
 
 
-    sqlite3_finalize(res);
+    //sqlite3_finalize(res);
     sqlite3_close(db);
 
     //printf("Done with File map STRIPE!\n");
@@ -316,7 +336,7 @@ void file_map_cache(String filename, String event_name){
     system(cp); //copy file to cache
 
     printf("[+] Cache: part1.%s\n", event_name);
-
+    //create_link();
     //String file = "";
     //sprintf(file, "%s/part1.%s", CACHE_LOC, event_name);
     //FILE *fp = fopen(file, "rb");

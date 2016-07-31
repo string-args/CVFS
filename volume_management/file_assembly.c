@@ -62,7 +62,7 @@ void assemble_cache_file(String filename, String root){
    sqlite3_close(db);
    //printf("RANDOM!\n");
    sprintf(comm, "cat %s > '%s/part1.%s'", files, ASSEMBLY_LOC, filename);
-   printf("COMM := %s\n", comm);
+   printf("cat := %s\n", comm);
    //syslog(LOG_INFO, "VolumeManagement: comm = %s\n", comm);
 
   //syslog(LOG_INFO, "VolumeManagement: PART1 OF THE FILE: %s/%s", ftemploc,ftemp);
@@ -75,7 +75,7 @@ void assemble_cache_file(String filename, String root){
    String put_cache = "";
    sprintf(put_cache, "mv '%s/part1.%s' '%s/part1.%s'", ASSEMBLY_LOC, filename, CACHE_LOC, filename);
    //syslog(LOG_INFO, "VolumeManagement: MV = %s\n", put_cache);
-   //printf("PUT CACHE := %s\n", put_cache);
+   printf("PUT CACHE := %s\n", put_cache);
 
    system(put_cache);
    printf("[+] Cache: part1.%s\n", filename);
@@ -203,8 +203,8 @@ void assemble(String filename){
    sprintf(cp, "cp '%s' '%s/%s'", volname, STORAGE_LOC, tempname);
    //move assembled file from assembly to volume with part1
    sprintf(mv, "mv '%s/%s' '%s'", ASSEMBLY_LOC, assfile, volname);
-   //printf("\nfile assembly CP = %s\n", cp);
-   //printf("\nfile assembly MV = %s\n", mv);
+   printf("\nfile assembly CP = %s\n", cp);
+   printf("\nfile assembly MV = %s\n", mv);
    system(cp);
    system(mv);
 

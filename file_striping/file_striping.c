@@ -19,6 +19,7 @@
 // this can handle 20GB striped into 64MB of stripe size
 
 void stripe(String dirpath, String fullpath, String filename) {
+  printf("in stripe function!\n");
 
   FILE *file_to_open;
 
@@ -86,7 +87,9 @@ void stripe(String dirpath, String fullpath, String filename) {
 
 	//printf("READ BYTES := %d\n", bytes_read);
   }
+  printf("going to file_map_stripe!\n");
   file_map_stripe(partnames, partfiles, part_count - 1);    // not so sure if -1
+  printf("after file_map_stripe!\n");
 
   free(buffer);
   system(comm);

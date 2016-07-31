@@ -15,6 +15,7 @@ typedef char String[1024];
 #define ASSEMBLY_LOC	"/mnt"
 #define STORAGE_LOC	"/mnt/CVFStorage"
 
+
 // #define MAX_CACHE_SIZE	2
 
 // #define STRIPE_SIZE 	134217728	//512MB
@@ -24,6 +25,8 @@ typedef char String[1024];
 #define CACHE_CONF  "../configs/cache_size.conf"
 #define STRIPE_CONF  "../configs/stripe_size.conf"
 
+
 // global variables
 extern int MAX_CACHE_SIZE;
 extern long STRIPE_SIZE;
+

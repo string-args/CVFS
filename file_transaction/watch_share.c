@@ -82,7 +82,7 @@ void list_dir(String dir_to_read, int fd, int wds[], String dirs[], int counter)
 				}
 			} else {
 
-				int wd = inotify_add_watch(fd, subdir, IN_ALL_EVENTS);
+				int wd = inotify_add_watch(fd, subdir, IN_OPEN | IN_CLOSE | IN_CREATE);
 				//wds[counter] = wd;
 				//strcpy(dirs[counter], subdir);
 				//counter++;
@@ -102,65 +102,6 @@ void list_dir(String dir_to_read, int fd, int wds[], String dirs[], int counter)
 	}
     }
     closedir(dr);
-}
-
-void check_missing(String output_here){
-
-	sqlite3 *db;
-	sqlite3_stmt *res;
-
-	String found = "";
-
-	int rc;
-	const char *tail;
-
-	rc = sqlite3_open(DBNAME, &db);
-	if (rc != SQLITE_OK){
-		fprintf(stderr, "Can't open database! %s\n",sqlite3_errmsg(db));
-		sqlite3_close(db);
-		exit(1); 	
-	}
-
-	String sql = "";
-	
-	strcpy(sql, "SELECT filename, fileloc from VolContent;");
-	int good = 0;
-	while (!good){
-		rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
-		if(rc != SQLITE_OK){}
-		else {good = 1;}
-	}
-
-	while (sqlite3_step(res) == SQLITE_ROW){
-		//only look for stripe files
-		if (strstr(sqlite3_column_text(res,0), "part1.") != NULL){
-		String filename = "";
-		String tempname = "";
-		String fileloc = "";
-		String source = "", dest = "";
-		strcpy(filename, sqlite3_column_text(res,0));
-		strcpy(tempname, filename);
-		strcpy(fileloc, sqlite3_column_text(res,1));
-		sprintf(source, "%s/%s", fileloc, filename);
-
-		strcpy(filename, replace_str(filename, "part1.", ""));
-		//memmove(filename, filename + strlen("part1."), pos + strlen(filename + strlen("part1.")));
-		sprintf(dest, "%s/%s", SHARE_LOC, filename);
-
-		//printf("SOURCE: %s | DEST: %s\n", source, dest);
-			
-			//check share if not found
-			if (access(dest, F_OK) != -1){
-				//do nothing here
-			} else {
-				//we found the filename what we are looking for!!
-				strcpy(output_here, tempname);
-				break;
-			}
-		}
-	}
-	sqlite3_finalize(res);
-	sqlite3_close(db);
 }
 
 void delete_folder(String root, String foldname){
@@ -249,8 +190,15 @@ void delete_folder(String root, String foldname){
 }
 
 void delete_from_cache(String file){
+	printf("in delete from cache!\n");
+	printf("file = %s\n", file);
 	sqlite3 *db;
 	int rc;
+
+	String rm = "";
+	sprintf(rm, "rm -rf '%s/%s'", CACHE_LOC, file);
+	printf("rm = %s\n", rm);
+	system(rm);
 
 	String sql = "";
 
@@ -262,6 +210,7 @@ void delete_from_cache(String file){
 	}
 
 	sprintf(sql, "Delete from cachecontent where filename = '%s';", file);
+	printf("sql = %s\n", sql);
 	int good = 0;
 	while (!good){
 		rc = sqlite3_exec(db, sql, 0, 0, 0);
@@ -273,20 +222,22 @@ void delete_from_cache(String file){
 	
 }
 
-void delete_stripe_file(String file){
-
+void delete_stripe(String file){
+        printf("in delete stripe function!\n");
 	sqlite3 *db;
 	sqlite3_stmt *res;
+	sqlite3_stmt *res2;
+	double avspace;
+	String sql2 = "";
 
 	const char *tail;
-
 	int rc;
-
 	String sql = "";
 	String name = "";	
-
-	String parts[4096];
-	int counter = 0;
+	String files[1000]; //assuming 1000 files
+        String fileloc[1000];
+	double filesize[1000];
+        int cnt = 0;
 
 	rc = sqlite3_open(DBNAME, &db);
 	if (rc != SQLITE_OK){
@@ -295,12 +246,16 @@ void delete_stripe_file(String file){
 		exit(1);
 	}
 
+	String pragma = "";
+	strcpy(pragma, "PRAGMA journal_mode=WAL;");
+	rc = sqlite3_exec(db, pragma, 0, 0, 0);
+
 	//remove part1. change to part% for query purposes	
 	strcpy(name, replace_str(file, "part1.", "part%."));
 
 	//this query select all the parts since part%. na
 	sprintf(sql, "SELECT filename, fileloc, filesize FROM VOLCONTENT where filename like '%s'", name);
-	//printf("sql1 = %s\n", sql);
+	printf("sql1 = %s\n", sql);
 	int good = 0;
 	while (!good){
 		rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
@@ -308,20 +263,67 @@ void delete_stripe_file(String file){
 
 		} else {good = 1;}
 	}	
+
+        while (sqlite3_step(res) == SQLITE_ROW){
+		strcpy(files[cnt], sqlite3_column_text(res,0));
+		strcpy(fileloc[cnt], sqlite3_column_text(res,1));
+		filesize[cnt] = sqlite3_column_double(res,2);
+		cnt++;
 	
-	while(sqlite3_step(res) == SQLITE_ROW){
+        }
+        sqlite3_finalize(res);
+	int i =0;
+	for (i = 0; i < cnt; i++){
 		//res0 = filename, res1 = fileloc, res3 = filesize
-		strcpy(parts[counter], sqlite3_column_text(res,0));
-		//select fileloc and update target size here
-		sqlite3_stmt *res2;
-		const char *tail2;
-		double avspace;
-		String sql2 = "";
-		sprintf(sql2, "select avspace from target where mountpt = '%s';", sqlite3_column_text(res,1));
-		//printf("SQL2 := %s\n", sql2);
+		//strcpy(parts[counter], sqlite3_column_text(res,0));
+
+		//remove from share
+		String rm = "";
+		if (strstr(files[i], "part1.") != NULL){
+			String name = "";
+			strcpy(name, files[i]);
+			strcpy(name, replace_str(name, "part1.", ""));
+			sprintf(rm, "rm -rf '%s/%s'", SHARE_LOC, name);
+			printf("rm = %s\n", rm);
+			system(rm);
+		}
+
+		//remove from target
+		//String rm = "";
+		sprintf(rm, "rm -rf '%s/%s'", fileloc[i], files[i]);
+		printf("rm = %s\n", rm);
+		system(rm);
+
+		if (strstr(files[i], "part1.") != NULL){
+			String name = "", rm = "";
+			strcpy(name, files[i]);
+			strcpy(name, replace_str(name, "part1.", ""));
+			sprintf(rm, "rm -rf '%s/%s'", SHARE_LOC, name);
+			printf("rm = %s\n", rm);
+			system(rm);
+		}
+	
+
+		sprintf(sql, "delete from volcontent where filename = '%s';", files[i]);
+		printf("sql = %s\n", sql);
 		good = 0;
 		while (!good){
-			rc = sqlite3_prepare_v2(db, sql2, 1000, &res2, &tail2);
+			rc = sqlite3_exec(db, sql, 0, 0, 0);
+			if (rc == SQLITE_OK){
+				good = 1;
+			}
+		}
+
+		//select fileloc and update target size here
+		//sqlite3_stmt *res2;
+		//const char *tail2;
+		//double avspace;
+		//String sql2 = "";
+		sprintf(sql2, "select avspace from target where mountpt = '%s';", fileloc[i]);
+		printf("SQL2 := %s\n", sql2);
+		good = 0;
+		while (!good){
+			rc = sqlite3_prepare_v2(db, sql2, 1000, &res2, &tail);
 			if (rc != SQLITE_OK){
 			}else {good = 1;}
 		}
@@ -332,37 +334,40 @@ void delete_stripe_file(String file){
 		}
 		sqlite3_finalize(res2);
 
-		printf("FILESIZE: %lf\n", sqlite3_column_double(res,2));
-		avspace = avspace + sqlite3_column_double(res,2);
+		printf("FILESIZE: %lf\n", filesize[i]);
+		avspace = avspace + filesize[i];
 		
 		//update target size here
-		sprintf(sql2, "Update target set avspace = %lf where mountpt = '%s';", avspace, sqlite3_column_text(res,1));
+		sprintf(sql2, "Update target set avspace = %lf where mountpt = '%s';", avspace, fileloc[i]);
 		printf("sql2 = %s\n", sql2);
 		//printf("SQL3 = %s\n", sql2);
 		good = 0;
 		while (!good){
 			rc = sqlite3_exec(db, sql2, 0, 0, 0);
 			if (rc != SQLITE_OK){
-	
+				//printf("update target delete locked!\n");
 			} else {good = 1;}
 		}
 
 		//remove it from target;
-		int status = 0;
-		String filepath = "";
-		sprintf(filepath, "%s/%s", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
+		//String rm = "";
+		//String filepath = "";
+		//sprintf(filepath, "%s/%s", fileloc[i], files[i]);
+		//sprintf(rm, "rm -rf '%s'", filepath);
+		//printf("rm = %s\n", rm);
+		//system(rm);
 		//printf("filepath = %s\n", filepath);
-		status = remove(filepath);
-		if (status == 0){
-			printf("[-] %s: %s\n", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
-		}
-		counter++;
+		//status = remove(filepath);
+		//if (status == 0){
+			//printf("[-] %s: %s\n", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
+		//}
+		//counter++;
 	}
 
-	sqlite3_finalize(res);
+	//sqlite3_finalize(res);
 
 	//after deleting actual file delete entry from volcontent
-	int i = 0;
+/*	int i = 0;
 	for (i = 0; i < MAX_PARTS; i++){
 		if (strcmp(parts[i], "") != 0){
 			sprintf(sql, "delete from volcontent where filename = '%s';", parts[i]);
@@ -374,7 +379,7 @@ void delete_stripe_file(String file){
 				} else {good = 1;}
 			}
 		}
-	}
+	}*/
 	
 
 	sqlite3_close(db);
@@ -382,33 +387,50 @@ void delete_stripe_file(String file){
 
 void delete_linear_file(String root, String file){
 
+	printf("in delete linear!\n");
+
 	String fullpath;
 	sprintf(fullpath, "%s/%s", root, file);
 
 	String rm = "";
-
+	sqlite3 *db;
+	sqlite3_stmt *res;
+	const char *tail;
+	String query = "", filename = "", fileloc = "";
+	double filesize;
+	int rc;
 	//printf("Full path: %s\n", fullpath);
 
-	if (strstr(fullpath, "/mnt/Share") != NULL)
-		memmove(fullpath, fullpath + strlen("/mnt/Share/"), 1 + strlen(fullpath + strlen("/mnt/Share/")));
+	if (strstr(fullpath, "/mnt/Share") != NULL){
+		strcpy(fullpath, replace_str(fullpath, "/mnt/Share/", ""));
+	}
+		//memmove(fullpath, fullpath + strlen("/mnt/Share/"), 1 + strlen(fullpath + strlen("/mnt/Share/")));
 
-	int status = 1;
-	sprintf(rm, "%s/%s", SHARE_LOC, fullpath);
-	status = remove(rm);
-	if (status == 0){
-		printf("[-] %s: %s\n", SHARE_LOC, rm);
+	//printf("fullpath = %s\n", fullpath);
+
+	//int status = 1;
+	String file_to_check = "";
+	sprintf(file_to_check, "rm -rf '%s/%s'", SHARE_LOC, fullpath);
+	printf("rm = %s\n", file_to_check);
+	system(file_to_check);
+
+	sprintf(rm, "rm -rf '%s/%s'", SHARE_LOC, fullpath);
+	printf("rm = %s\n", rm);
+	system(rm);
+	
+	while (doesFileExist(file_to_check)){
+		system(rm);
+	}
+	//status = remove(rm);
+	//if (status == 0){
+	//	printf("[-] %s: %s\n", SHARE_LOC, rm);
 	
 
 	//printf("Fullpath after: %s\n", fullpath);
 
 	//get file information in volcontent;
-	sqlite3 *db;
-	sqlite3_stmt *res;
-	const char *tail;
-	int rc;
-	String query = "", filename = "", fileloc = "";
-	double filesize;
 	sprintf(query, "SELECT filename, fileloc, filesize FROM VOLCONTENT WHERE filename = '%s';", fullpath);
+        printf("query = %s\n", query);
 	
 	//printf("query1 = %s\n", query);
 
@@ -418,6 +440,10 @@ void delete_linear_file(String root, String file){
 		sqlite3_close(db);
 		exit(1);
 	}
+
+	String pragma = "";
+	strcpy(pragma, "PRAGMA journal_mode=WAL;");
+	rc = sqlite3_exec(db, pragma, 0, 0, 0);
 
 	int good = 0;
 	while (!good){
@@ -435,32 +461,45 @@ void delete_linear_file(String root, String file){
 	}
 	sqlite3_finalize(res);
 
+	sprintf(file_to_check, "%s/%s", fileloc, filename);
+	int status = 0;
+	status = remove(file_to_check);
+
+
+	sprintf(query, "delete from volcontent where filename = '%s'\n", filename);
+        printf("query = %s\n", query);	
+        good = 0;
+	while(!good){
+        rc = sqlite3_exec(db, query, 0, 0, 0);
+        if (rc == SQLITE_OK){
+		good = 1;
+	}
+	}
+
 	//update target size here
-	sqlite3_stmt *res2;
+	//sqlite3_stmt *res2;
 	sprintf(query, "SELECT avspace FROM target where mountpt = '%s';", fileloc);
-	//printf("query2 = %s\n", query);
+	printf("query2 = %s\n", query);
 	double avspace = 0.0;
 	good = 0;
 	while (!good){
-		rc = sqlite3_prepare_v2(db, query, 1000, &res2, &tail);
+		rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
 		if (rc != SQLITE_OK){
 		} else {good = 1;}
 	}
 
-	if (sqlite3_step(res2) == SQLITE_ROW){
-		avspace = sqlite3_column_double(res2,0);
+	if (sqlite3_step(res) == SQLITE_ROW){
+		avspace = sqlite3_column_double(res,0);
 	
 		//printf("fileloc: %s | avspace: %lf\n", fileloc, sqlite3_column_double(res2,0));
 	}
-	sqlite3_finalize(res2);
+	sqlite3_finalize(res);
 
 	//update avspace
 	avspace = avspace + filesize;
 
 	sprintf(query, "Update Target set avspace = %lf where mountpt = '%s';", avspace, fileloc);
-	
-	//printf("query3 = %s\n", query);
-
+	printf("query3 = %s\n", query);
 	good = 0;
 	while (!good){
 		rc = sqlite3_exec(db, query, 0, 0, 0);
@@ -469,7 +508,7 @@ void delete_linear_file(String root, String file){
 	}
 
 	//after updating avspace, delete it from volcontent table
-	sprintf(query, "Delete from volcontent where filename = '%s';", filename);
+/*	sprintf(query, "Delete from volcontent where filename = '%s';", filename);
 
 	//printf("query4 = %s\n", query);
 
@@ -478,22 +517,170 @@ void delete_linear_file(String root, String file){
 		rc = sqlite3_exec(db, query, 0, 0, 0);
 		if (rc != SQLITE_OK){
 		} else {good = 1;}
-	}
+	}*/
 
 	//delete the actual file from target;
 	//String rm = "";
-	sprintf(rm, "%s/%s", fileloc, filename);
-	status = remove(rm);
-
+	//sprintf(file_to_check, "%s/%s", fileloc, filename);
+	//sprintf(rm, "rm -rf '%s/%s'", fileloc, filename);
+	//status = remove(rm);
 	//printf("query5 = %s\n", rm);
+	//system(rm);
 
-	if (status == 0)
-        	printf("[-] %s: %s\n", fileloc, filename);
-
-
+	//while(doesFileExist(file_to_check)){
+	//	system(rm);
+	//}
 	//close db
 	sqlite3_close(db);
-    }
+    
+}
+
+int doesFileExist(const char *filename){
+	struct stat st;
+	int result = lstat(filename, &st);
+	return result == 0;
+}
+
+int inCaches(const char *filename){
+	String comm = "", comm_out = "";
+	int inCache = 0;
+
+	strcpy(comm, "ls /mnt/CVFSCache");
+	runCommand(comm, comm_out);
+
+	char *pch = strtok(comm_out, "\n");
+	while (pch != NULL){
+		if (strcmp(pch, filename) == 0){
+			inCache = 1;
+			break;
+		}
+		pch = strtok(NULL, "\n");
+	}
+
+	return inCache;
+}
+
+void check_delete(){
+	//printf("in check delete\n");
+
+	String linear[4096];
+	String stripe[4096];
+	int lcounter = 0;
+	int scounter = 0;
+	//printf("after initialization!\n");
+	sqlite3 *db;
+	sqlite3_stmt *res;
+
+	String found = "";
+
+	//String files[4096]; //assuming 4096 files are transferred
+
+	int rc;
+	const char *tail;
+
+	rc = sqlite3_open(DBNAME, &db);
+	if (rc != SQLITE_OK){
+		fprintf(stderr, "Can't open database! %s\n",sqlite3_errmsg(db));
+		sqlite3_close(db);
+		exit(1); 	
+	}
+
+	String sql = "";
+	
+	strcpy(sql, "SELECT filename, fileloc from VolContent;");
+	int good = 0;
+	while (!good){
+		rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
+		if(rc != SQLITE_OK){}
+		else {good = 1;}
+	}
+
+	while (sqlite3_step(res) == SQLITE_ROW){
+		//printf("file to check: %s\n", sqlite3_column_text(res,0));
+		//check for stripe and linear files
+		if (strstr(sqlite3_column_text(res,0), "part1.") != NULL || strstr(sqlite3_column_text(res,0), "part") == NULL){
+		String filename = "";
+		String tempname = "";
+		String fileloc = "";
+		String source = "", dest = "";
+		strcpy(filename, sqlite3_column_text(res,0));
+		strcpy(tempname, filename);
+		strcpy(fileloc, sqlite3_column_text(res,1));
+		sprintf(source, "%s/%s", fileloc, filename);
+
+		if (strstr(filename, "part1.") != NULL){
+			//stripe file deletion
+			String temp = "";
+			strcpy(temp, filename);
+			strcpy(filename, replace_str(filename, "part1.", ""));
+			sprintf(dest, "%s/%s", SHARE_LOC, filename);
+			if (!doesFileExist(dest)){
+				printf("file %s is deleted\n", filename);
+				strcpy(stripe[scounter], temp);
+				scounter++;
+				printf("after strcpy!\n");
+			}
+		} else {
+			//linear file deletion
+			sprintf(dest, "%s/%s", SHARE_LOC, filename);
+			if (!doesFileExist(dest)){
+
+				int status = 0;
+				status = remove(dest);
+				if (status == 0)
+					printf("[-] %s: %s\n", SHARE_LOC, dest);
+				//printf("file %s deleted!\n", filename);
+				//delete_linear_file(SHARE_LOC, filename);
+				strcpy(linear[lcounter], filename);
+				//int status = 0;
+				//status = remove(dest);
+				//if (status == 0)
+				//	printf("[-] %s: %s\n", SHARE_LOC, dest);
+				//printf("after strcpy");
+				lcounter++;
+			}
+		}
+
+		//memmove(filename, filename + strlen("part1."), pos + strlen(filename + strlen("part1.")));
+		//sprintf(dest, "%s/%s", SHARE_LOC, filename);
+		//printf("filename = %s\n", dest);
+		//printf("SOURCE: %s | DEST: %s\n", source, dest);
+		}
+	}
+	sqlite3_finalize(res);
+
+	int i;
+	for (i = 0; i < lcounter; i++){
+		delete_linear_file(SHARE_LOC, linear[i]);
+	}
+
+	int j;
+	for (j = 0; j < scounter; j++){
+		//check if in cache
+		String tempname = "";
+		strcpy(tempname, stripe[j]);
+		printf("in stripe loop!\n");
+		if (strstr(tempname, "/") != NULL){
+			printf("in here!\n");
+			char *pch = strtok(tempname, "/");
+			while(pch != NULL){
+				strcpy(tempname, pch);
+				pch = strtok(NULL, "/");
+			}
+		}
+		//delete_stripe_file(tempname);
+		printf("after strstr in loop!\n");
+		printf("stripefile = %s\n",tempname); 
+		if (inCaches(tempname)){
+			printf("file in cache!\n");
+			delete_from_cache(tempname);
+			printf("after cache deletion!\n");
+		}
+		printf("after checking cahce!\n");	
+		delete_stripe(stripe[j]);
+	}
+
+	sqlite3_close(db);
 }
 
 void *watch_share()
@@ -584,7 +771,9 @@ void *watch_share()
 
     /*do it forever*/
     for(;;){
-	create_link();
+       //check_delete();
+       //create_link();
+       //system("symlinks -dr /mnt/Share");
        length = read(fd, buffer, BUF_LEN);
 
        if (length < 0){
@@ -628,76 +817,18 @@ void *watch_share()
 	     }
 
 	     if (event->mask & IN_DELETE){
-		if (event->mask & IN_ISDIR){
-			int d;
-			for (d = 0; d < MAX_WTD; d++){
-				if (wds[d] == event->wd){
-					//this is the watch descriptor that trigger the deletion of folder
-					//dirs[d] contains the root dir of folder directory ex:
-					//dirs[d] = /mnt/Share/testfold, event->name = testfold2
-					delete_folder(dirs[d], event->name);
-					break;
-				}
-			}
-		} else {
-		
-			int d;
-			for (d = 0; d < MAX_WTD; d++){
-				if (wds[d] == event->wd){
+		//printf("%s is deleted!\n", event->name);
 
-					//get the file the symbolic link pointing to
-					String fullpath = "";
-					char buf[PATH_MAX+1];
-					sprintf(fullpath, "%s/%s", dirs[d], event->name);
-					char *res = realpath(fullpath, buf);
-					if (res){
-						if (strstr(buf, "part1.") != NULL){
-							//for stripe file
-							//if in cache
-							if (strstr(buf, "/mnt/CVFSCache") != NULL){
-								int status = 0;
-								String filename = "";
-								sprintf(filename, "part1.%s", event->name);
-								delete_from_cache(filename); //delete entry cachecontent
-								status = remove(buf);
-								if (status == 0){ //remove from cache
-									printf("[-] %s: %s\n", CACHE_LOC, buf); 
-								}
-
-								sprintf(filename, "%s/%s", dirs[d], event->name);
-								//printf("rm (share) = %s\n", filename);
-								status = remove(filename);
-								if (status == 0){ //remove from share
-									printf("[-] %s: %s\n", SHARE_LOC, event->name);
-								}
-								String target_file_path = "";
-								check_missing(target_file_path);
-								delete_stripe_file(target_file_path);
-							} else {
-								//not in cache how it will happen
-								int status = 0;
-								String f = "";
-								sprintf(f, "%s/%s", dirs[d], event->name);
-								status = remove(f);
-								if (status == 0){
-									printf("[-] %s: %s\n", SHARE_LOC, f);
-								}
-								String target_file_path = "";
-								strcpy(target_file_path, replace_str(f,"/mnt/Share/", ""));
-								delete_stripe_file(target_file_path);
-							}
-
-						} else {
-							delete_linear_file(dirs[d], event->name);
-						}
-					}
-					break;
-				}
-			}
-		}
-	     }
-
-              if (event->mask & IN_OPEN){
+		FILE *fp = fopen("deleting.txt", "w");
+		fprintf(fp, "1");
+		fclose(fp);
+		check_delete();
+		fp = fopen("deleting.txt", "w");
+		fprintf(fp, "0");
+		fclose(fp);
+             }
+              
+             if (event->mask & IN_OPEN){
                   if (event->mask & IN_ISDIR){
 
                   }else {
@@ -713,13 +844,17 @@ void *watch_share()
 			}
 
 			//printf("FILENAME : %s opened.\n", event->name);
-			int flag;
+			int flag, flag1;
                         FILE *fp = fopen("random.txt", "r");
 			fscanf(fp,"%d",&flag);
 			fclose(fp);
-			//printf("IN OPEN FLAG := %d\n", flag);
-			if (flag == 0){ //done striping continue with open event
-                        incrementFrequency(event->name);
+			fp = fopen("is_assembling.txt", "r");
+			fscanf(fp, "%d", &flag1);
+			fclose(fp);
+			printf("IN OPEN FLAG := %d %d: filename = %s \n", flag, flag1, event->name);
+			if (flag == 0 && flag1 == 0){ //done striping continue with open event
+                        //and done with assembling file
+			incrementFrequency(event->name);
                         String comm = "", comm_out = "";
                         int inCache = 0;
                         sprintf(comm, "ls %s", CACHE_LOC);
@@ -757,7 +892,13 @@ void *watch_share()
                 // take NOTE: assembly of file should only happen when all files are present
                 // (or when no file striping is happening)
                 // can this be determined with random.txt?
-                //assemble(event->name);}
+                	//fp = fopen("is_assembling.txt", "w");
+			//fprintf(fp, "1");
+			//fclose(fp);
+			assemble(event->name);
+			//fp = fopen("is_assembling.txt", "w");
+			//fprintf(fp, "0");
+			//fclose(fp);
 		}
 			    //String assembled_file = "";
 			    //sprintf(assembled_file, "%s/%s", ASSEMBLY_LOC, event->name);
@@ -810,9 +951,9 @@ void *watch_share()
 		      FILE *fp = fopen("random.txt", "rb");
 		      fscanf(fp, "%d", &flag);
 		      fclose(fp);
-		      //printf("IN CLOSE FLAG := %d\n", flag);
+		      printf("IN CLOSE FLAG := %d : filename = %s\n", flag, event->name);
 		      if (flag == 0) { //done striping
-
+			
 			String comm = "", comm_out = "";
 			int inCache = 0;
 			strcpy(comm, "ls /mnt/CVFSCache");
@@ -851,7 +992,8 @@ void *watch_share()
 			}
 
                       	if (strstr(event->name, "part1.") != NULL){
-                        	   //refreshCache();
+                        	 //printf("refresh cache here!\n");  
+				 refreshCache();
                       	}
 		      }
                   }

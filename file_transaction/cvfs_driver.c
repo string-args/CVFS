@@ -10,15 +10,15 @@
 #include "../disk_pooling/file_presentation.h"
 #include "../disk_pooling/initial_configurations.h"
 #include "../file_recovery/target_stat.h"
+#include "../cache_access/cache_operation.h"
 #include "watch_share.h"
 #include "watch_dir.h"
 
-#define THREADCNT 2
+#define THREADCNT 3
 
 // declare globals
 int MAX_CACHE_SIZE;
 long STRIPE_SIZE;
-
 
 // shows help message and exit
 void show_help() {
@@ -31,6 +31,9 @@ void show_help() {
 void configure() {
     int flag = 0; //initial value of flag
     FILE *fp = fopen("random.txt", "w");
+    fprintf(fp, "%d", flag);
+    fclose(fp);
+    fp = fopen("is_assembling.txt", "w");
     fprintf(fp, "%d", flag);
     fclose(fp);
     // read configuration files of cache size and stripe size
@@ -48,6 +51,9 @@ void configure() {
     }
     fscanf(fp, "%ld", &STRIPE_SIZE);
     fclose(fp);
+    //strcpy(DBNAME, "../Database/cvfs_db");
+    //sprintf(DBNAME, "%s", "../Database/cvfs_db"); 
+    
 }
 
 int main(int argc, char *argv[]) {
@@ -77,7 +83,14 @@ int main(int argc, char *argv[]) {
         //pthread_create(&t[0], NULL, create_link, NULL);
         pthread_create(&t[0], NULL, watch_temp, NULL);
         pthread_create(&t[1], NULL, watch_share, NULL);
-        //pthread_create(&t[2], NULL, check_target, NULL);
+        
+//	FILE *fp = fopen("deleting.txt", "r");
+//	int flag;
+//	fscanf(fp, "%d", &flag);
+//	if (flag == 0){
+        	pthread_create(&t[2], NULL, create_link, NULL);
+//	}
+	//pthread_create(&t[3], NULL, refreshCache, NULL);
 
         for (i = 0; i < THREADCNT; i++) {
             pthread_join(t[i], NULL);

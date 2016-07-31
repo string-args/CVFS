@@ -115,7 +115,7 @@ void *watch_temp()
     /*do it forever*/
     while(1){
 	//select(fd+1, &descriptors, NULL, NULL, &time_to_wait);
-       create_link();
+       //create_link();
        i = 0;
        length = read(fd, buffer, BUF_LEN);
 
@@ -224,9 +224,11 @@ void *watch_temp()
                          rewind(fp);
                          //check if stripe file
                         if (sz > STRIPE_SIZE){
+			   //file_map_cache(filename, event->name);
                            update_cache_list(event->name, root);
                            file_map_cache(filename, event->name);
 			   stripe(root, filepath, filename);
+			   //update_cache_list(event->name, root);
                         } else {
 			   syslog(LOG_INFO, "FileTransaction: Transferring %s to targets...\n", filename);
                            file_map(filepath, filename, sz);

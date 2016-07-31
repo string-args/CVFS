@@ -26,6 +26,12 @@ void* create_link(){
      exit(1);
    }
 
+   String pragma = "";
+   strcpy(pragma, "PRAGMA journal_mode=WAL;");
+   rc = sqlite3_exec(db, pragma, 0, 0,0);
+
+while(1){
+   String comm = "", comm_out = "";
    sprintf(comm, "ls %s", CACHE_LOC);
    runCommand(comm, comm_out);
    //String original;
@@ -46,9 +52,11 @@ void* create_link(){
 
  
    while (sqlite3_step(res) == SQLITE_ROW){
+	//printf("in res loop!\n");
 	int inCache = 0;
         String orig = "";
-        strcpy(orig, comm_out);
+        sprintf(orig, "%s", comm_out);
+	//strcpy(orig, comm_out);
 
 	String file = "";
 	strcpy(file, sqlite3_column_text(res,0));
@@ -114,27 +122,38 @@ void* create_link(){
 			//printf("[+] %s: %s\n", SHARE_LOC, dest);
 			//printf("SOURCE := %s | DEST := %s\n", source, dest);
 			//printf("DEST := %s\n", dest);
+
+			if (access(source, F_OK) != -1){
+				
+			//printf("source = %s | dest = %s\n", source, dest);			
 			
 			if (symlink(source,dest) == 0){
 				syslog(LOG_INFO, "File Presentation: Created Link: %s\n", dest);
 				printf("[+] %s: %s\n", SHARE_LOC, dest);
 				//printf("FILEPRESENT\n");
 			}else {	}
+			}
 		}
 	} else {
 		if (strstr(sqlite3_column_text(res,0),"part1.") != NULL){
+			
+			//printf("stripe in cache link!\n");
 			String filename = "", source = "", dest = "";
 			//strcpy(filename, sqlite3_column_text(res,0));
 			sprintf(source, "%s/%s", CACHE_LOC, x);
+			//printf("source = %s\n", source);
 			memmove(x,x+strlen("part1."),1+strlen(x+strlen("part1.")));
 			//sprintf(source, "%s/%s", CACHE_LOC, sqlite3_column_text(res,0));
 			sprintf(dest, "%s/%s%s", SHARE_LOC, dir,x);
+			//printf("dest = %s\n", dest);
 			//printf("IN CACHE: SOURCE := %s | DEST := %s\n", source, dest);
+			if (access(source, F_OK) != -1){
 			if (symlink(source,dest) == 0){
 				syslog(LOG_INFO,"File Presentation: Created Link %s\n", dest);
 				printf("[+] %s: %s\n", SHARE_LOC, dest);
-				printf("FILEPRESENT!\n");
+				//printf("FILEPRESENT!\n");
 			} 
+			}
 			//String update = "";
 			//sprintf(update, "ln -snf '%s' '%s'", source, dest);
 			//system(update);
@@ -144,6 +163,7 @@ void* create_link(){
    }
 
    sqlite3_finalize(res);
+}
    sqlite3_close(db);
 }
 
