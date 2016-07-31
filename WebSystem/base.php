@@ -11,6 +11,8 @@
 
         <!--Icons-->
         <script src="bootstrap/js/lumino.glyphs.js"></script>
+        <script src="bootstrap/js/jquery-1.11.1.min.js"></script>
+        <script src="bootstrap/js/bootstrap.min.js"></script>
     </head>
 
     <body>
@@ -45,43 +47,20 @@
         </nav>
 
         <div id="sidebar-collapse" class="col-sm-3 col-lg-2 sidebar">
-            <form role="search">
-                <div class="form-group">
-                    <input type="text" class="form-control" placeholder="Search">
-                </div>
-            </form>
+            <!-- class="glyphicons glyphicons-database-plus" glyphicons-332-dashboard.png -->
             <ul class="nav menu">
-                <li><a href="index.php"><svg class="glyph stroked dashboard-dial"><use xlink:href="#stroked-dashboard-dial"></use></svg> Dashboard</a></li>
-                <li><a href="systemlogs.php"><svg class="glyph stroked calendar"><use xlink:href="#stroked-calendar"></use></svg> System Logs</a></li>
-                <li><a href="auditlogs.php"><svg class="glyph stroked line-graph"><use xlink:href="#stroked-line-graph"></use></svg> Audit Logs</a></li>
-                <li><a href="addtarget.php"><svg class="glyph stroked table"><use xlink:href="#stroked-table"></use></svg> Add Target</a></li>
-                <li><a href="decomnode.php"><svg class="glyph stroked table"><use xlink:href="#stroked-table"></use></svg> Decommission Server</a></li>
-                <li><a href="help.php"><svg class="glyph stroked table"><use xlink:href="#stroked-table"></use></svg> Help</a></li>
+                <li><a href="index.php"><img src="glyphicons/png/glyphicons-332-dashboard.png" > Dashboard</a></li>
+                <li><a href="systemlogs.php"><img src="glyphicons/png/glyphicons-88-log-book.png" > System Logs</a></li>
+                <li><a href="auditlogs.php"><img src="glyphicons/png/glyphicons-72-book.png" > Audit Logs</a></li>
+                <li><a href="addtarget.php"><img src="glyphicons/png/glyphicons-142-database-plus.png" > Add Target</a></li>
+                <li><a href="decomnode.php"><img src="glyphicons/png/glyphicons-143-database-minus.png" > Decommission Server</a></li>
+                
                 
                 <li role="presentation" class="divider"></li>
-                <li><a href="login.php"><svg class="glyph stroked male-user"><use xlink:href="#stroked-male-user"></use></svg> Login Page</a></li>
+                <li><a href="help.php"><img src="glyphicons/png/glyphicons-195-question-sign.png" > Help</a></li>
             </ul>
 
         </div><!--/.sidebar-->
 
-        <div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">			
-            <div class="row">
-                <ol class="breadcrumb">
-                    <li><a href="#"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
-                    <li class="active">Icons</li>
-                </ol>
-            </div><!--/.row-->
-
-            <div class="row">
-                <div class="col-lg-12">
-                    <h1 class="page-header">Dashboard A</h1>
-                </div>
-            </div><!--/.row-->
-
-            
-
-            
-        </div>	<!--/.main-->
-        <script src="bootstrap/js/jquery-1.11.1.min.js"></script>
-        <script src="bootstrap/js/bootstrap.min.js"></script>
-    </body>
+        
+        

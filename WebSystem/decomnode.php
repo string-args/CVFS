@@ -1,23 +1,31 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="utf-8">
-        <title>Server Decommissioning</title>
-        <style>
-            .details {
+<?php include 'base.php'; ?>
+
+<style>
+    .details {
                 margin-left: 50px;
             }
-        </style>
-    </head>
-    <body>
-        <?php include 'base.php'; ?>
-        <h1>Select from available nodes</h1>
-        <form action="decom_serv.php" method="post">
+</style>
+<div class="col-sm-9 col-sm-offset-3 col-lg-10 col-lg-offset-2 main">			
+    <div class="row">
+        <ol class="breadcrumb">
+            <li><a href="index.php"><svg class="glyph stroked home"><use xlink:href="#stroked-home"></use></svg></a></li>
+            <li class="active">Server Decommissioning</li>
+        </ol>
+    </div><!--/.row-->
+
+    <div class="row">
+        <div class="col-lg-12">
+            <h1 class="page-header">Server Decommissioning</h1>
+        </div>
+    </div><!--/.row-->
+    <h2>Select from available nodes</h2>
+    <form action="decom_serv.php" method="post">
         <?php
         $config = 'cvfsweb.conf';
         $cvfs_dir = file_get_contents($config);
         $DBNAME = trim($cvfs_dir) . '/Database/cvfs_db';
-	echo "DBNAME = " . $DBNAME;
+        echo "DBNAME = " . $DBNAME . '<br>';
         $db = new SQLite3($DBNAME);
         $res = $db->query('SELECT * from Target;');
         while ($row = $res->fetchArray()) {
@@ -31,6 +39,7 @@
         ?>
 
         <input type="submit" value="Decommission">
-        </form>
-    </body>
+    </form>
+</div>
+</body>
 </html>
