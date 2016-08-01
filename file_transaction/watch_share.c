@@ -55,7 +55,7 @@ void list_dir(String dir_to_read, int fd, int wds[], String dirs[], int counter)
     DIR *dr = opendir(dir_to_read);
 
     if (dr == NULL){
-	syslog(LOG_INFO, "FileTransaction: Could not open current directory");
+	syslog(LOG_INFO, "FileTransaction: Could not open current directory %s", dir_to_read);
     }
 
     while ((de = readdir(dr)) != NULL){
@@ -67,6 +67,7 @@ void list_dir(String dir_to_read, int fd, int wds[], String dirs[], int counter)
 	switch(s.st_mode & S_IFMT){
 		case S_IFDIR: 
 		if (strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0) {
+			//printf("folder here: %s\n", subdir);
 
 			//since its loop constantly checks the share
 			//if a link of folder has been linked
@@ -947,12 +948,16 @@ void *watch_share()
 		//	printf("Original file exist. File closed. Disassembling file..\n");
 		     //}
 		      //fclose(fp);
-		      int flag;
+		      int flag, flag1;
 		      FILE *fp = fopen("random.txt", "rb");
 		      fscanf(fp, "%d", &flag);
 		      fclose(fp);
-		      printf("IN CLOSE FLAG := %d : filename = %s\n", flag, event->name);
-		      if (flag == 0) { //done striping
+		      fp = fopen("is_assembling.txt", "rb");
+		      fscanf(fp, "%d", &flag1);
+		      fclose(fp);
+		      printf("IN CLOSE FLAG := %d %d : filename = %s\n", flag, flag1, event->name);
+		      
+			if (flag == 0 && flag1 == 0) { //done striping
 			
 			String comm = "", comm_out = "";
 			int inCache = 0;
@@ -992,8 +997,9 @@ void *watch_share()
 			}
 
                       	if (strstr(event->name, "part1.") != NULL){
-                        	 //printf("refresh cache here!\n");  
+                        	 printf("refresh cache here!\n");  
 				 refreshCache();
+				printf("tapos na ang ref cache!\n");
                       	}
 		      }
                   }

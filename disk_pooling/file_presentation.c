@@ -122,16 +122,16 @@ while(1){
 			//printf("[+] %s: %s\n", SHARE_LOC, dest);
 			//printf("SOURCE := %s | DEST := %s\n", source, dest);
 			//printf("DEST := %s\n", dest);
-
-			if (access(source, F_OK) != -1){
+			
+			if  (access(source, F_OK) != -1){
 				
 			//printf("source = %s | dest = %s\n", source, dest);			
 			
-			if (symlink(source,dest) == 0){
+			 if (symlink(source,dest) == 0){
 				syslog(LOG_INFO, "File Presentation: Created Link: %s\n", dest);
 				printf("[+] %s: %s\n", SHARE_LOC, dest);
 				//printf("FILEPRESENT\n");
-			}else {	}
+			}//else {	}
 			}
 		}
 	} else {

@@ -202,7 +202,7 @@ void assemble(String filename){
    //copy original part1 of file to CVFStore folder
    sprintf(cp, "cp '%s' '%s/%s'", volname, STORAGE_LOC, tempname);
    //move assembled file from assembly to volume with part1
-   sprintf(mv, "mv '%s/%s' '%s'", ASSEMBLY_LOC, assfile, volname);
+   sprintf(mv, "mv '%s/part1.%s' '%s'", ASSEMBLY_LOC, filename, volname);
    printf("\nfile assembly CP = %s\n", cp);
    printf("\nfile assembly MV = %s\n", mv);
    system(cp);

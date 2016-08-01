@@ -226,7 +226,10 @@ void *watch_temp()
                         if (sz > STRIPE_SIZE){
 			   //file_map_cache(filename, event->name);
                            update_cache_list(event->name, root);
-                           file_map_cache(filename, event->name);
+                           
+			   //if (getCacheCount() < MAX_CACHE_SIZE){
+			   	file_map_cache(filename, event->name);
+			   //}
 			   stripe(root, filepath, filename);
 			   //update_cache_list(event->name, root);
                         } else {

@@ -472,10 +472,21 @@ void* refreshCache(){
 	  strcpy(name1, file);
 	  //strcpy(name1, replace_str(file,"part1.",""));
 	  strcpy(name1, replace_str(name1,"part1.",""));
-	  sprintf(ln, "ln -snf '%s/%s' '%s/%s'", mountpt, file, SHARE_LOC, name1);
+	  
+	  String source = "", dest = "";
+	  sprintf(source, "%s/%s", mountpt, file);
+	  sprintf(dest, "%s/%s", SHARE_LOC, name1);
+
+	
+          sprintf(ln, "ln -snf '%s' '%s'", source, dest);
+	 
+	  //String comm1 = "";
+	  //sprintf(comm1, "rm -rf '%s/%s'", SHARE_LOC, name1);
+	  //system(comm1);
+
 	  printf("ln = %s\n", ln);
 	  system(ln);
-
+	  system(ln);
 	  //system(comm1);
 	  //create_link();
 	  system(comm);

@@ -218,10 +218,12 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
     if(sqlite3_step(res) == SQLITE_ROW) {
         totalspace = sqlite3_column_double(res,0);
     }
-    //if (totalspace / STRIPE_SIZE < parts) {
-    //    printf("Targets FULL. Cannot do this.\n");
-    //    exit(1);
-   // }
+   printf("total space = %ld | parts = %d\n", totalspace, parts);
+    if (totalspace / STRIPE_SIZE < parts) {
+	
+        printf("Targets FULL. Cannot do this.\n");
+        exit(1);
+    }
 
 
     sprintf(sql, "SELECT avspace, mountpt FROM Target WHERE avspace >= %ld ORDER BY avspace DESC;", STRIPE_SIZE);
