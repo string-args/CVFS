@@ -29,7 +29,7 @@
         $db = new SQLite3($DBNAME);
         $db->busyTimeout(5000);
         $res = $db->query('SELECT * from Target;');
-        $db->close();
+        
         while ($row = $res->fetchArray()) {
             echo '<input type="radio" name="node" value="' . $row['iqn'] . '|' . $row['mountpt'] . '|' . $row['assocvol'] . '|' . $row['ipadd'] . '" />' . $row['iqn'] . '<br />';
             echo '<div class="details">' . 'IP address: ' . $row['ipadd'] . '<br />'
@@ -38,7 +38,9 @@
             . 'Available Space: ' . $row['avspace'] . '<br />';
             echo '</div>';
         }
+        $db->close();
         ?>
+        
 
         <input type="submit" value="Decommission">
     </form>

@@ -54,6 +54,7 @@
                 <li><a href="auditlogs.php"><img src="glyphicons/png/glyphicons-72-book.png" > Audit Logs</a></li>
                 <li><a href="addtarget.php"><img src="glyphicons/png/glyphicons-142-database-plus.png" > Add Target</a></li>
                 <li><a href="decomnode.php"><img src="glyphicons/png/glyphicons-143-database-minus.png" > Decommission Server</a></li>
+                <li><a href="settings.php"><img src="glyphicons/png/glyphicons-281-settings.png" > Settings</a></li>
                 
                 
                 <li role="presentation" class="divider"></li>
