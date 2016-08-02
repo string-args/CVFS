@@ -22,9 +22,11 @@ include 'base.php';
     $config = 'cvfsweb.conf';
     $cvfs_dir = file_get_contents($config);
     $DBNAME = trim($cvfs_dir) . '/Database/cvfs_db';
-    echo "DBNAME = +" . $DBNAME . '+';
+    echo "DBNAME = " . $DBNAME;
     $db = new SQLite3($DBNAME);
+    $db->busyTimeout(5000);
     $res = $db->query('SELECT * from Target;');
+    $db->close();
     $total = 0;
     while ($row = $res->fetchArray()) {
         echo '<table class="table" border="2">';
