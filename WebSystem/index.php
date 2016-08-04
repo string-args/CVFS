@@ -17,16 +17,37 @@ include 'base.php';
         </div>
     </div><!--/.row-->
 
-    <h2>Active iSCSI Targets</h2>
+    
+    <div class="panel panel-primary col-md-6">
+  <div class="panel-heading">
+    <h2 class="panel-title">Active iSCSI Targets</h2>
+  </div>
+  <div class="panel-body">
     <?php
+
+    function formatBytes($bytes, $precision = 2) {
+        $units = array('B', 'KB', 'MB', 'GB', 'TB');
+
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+
+         $bytes /= pow(1024, $pow);
+
+        return round($bytes, $precision) . ' ' . $units[$pow];
+    }
+
     $config = 'cvfsweb.conf';
     $cvfs_dir = file_get_contents($config);
     $DBNAME = trim($cvfs_dir) . '/Database/cvfs_db';
-    echo "DBNAME = " . $DBNAME;
+//    echo "DBNAME = " . $DBNAME;
     $db = new SQLite3($DBNAME);
     $db->busyTimeout(5000);
-    $res = $db->query('SELECT * from Target;');
+//    $res = $db->query('SELECT * from Target;');
+    $statement = $db->prepare('SELECT * FROM Target;');
+    $res = $statement->execute();
     $total = 0;
+    
     while ($row = $res->fetchArray()) {
         echo '<table class="table" border="2">';
         echo '<tr><td>Target IQN</td><td>' . $row['iqn'] . '</td></tr>';
@@ -37,12 +58,24 @@ include 'base.php';
         echo '</table><br>';
         $total += $row['avspace'];
     }
+
+
     $db->close();
-
-    echo '<h2>Total Available Space: ' . $total . ' bytes.</h2>';
     ?>
+  </div>
+</div>
+    
+    <div class="panel panel-primary col-md-6">
+  <div class="panel-heading">
+    <h2 class="panel-title">Total Available Space</h2>
+  </div>
+  <div class="panel-body">
+    <h2><?=formatBytes($total)?></h2>
+  </div>
+</div>
+    
 
-   
+
 </div>	<!--/.main-->
 
 </body>

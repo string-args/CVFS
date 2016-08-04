@@ -18,15 +18,50 @@ include 'base.php';
         </div>
     </div><!--/.row-->
     <?php
+    $rows = "all";
+    if (isset($_GET['logrow'])) {
+        $rows = $_GET['logrow'];
+    }
+    ?>
+    <div class="col-xs-3 ">
+
+        <form method="get" name="chooselines">
+
+            <select class="form-control" name="logrow" id="logrow" type="submit" onchange="document.getElementsByName('chooselines')[0].submit()">
+                <option value="all" <?php if ($rows == "all"): echo "selected='selected'";
+    endif;
+    ?>>Display all rows</option>
+                <option value="5" <?php if ($rows == "5"): echo "selected='selected'";
+                        endif;
+    ?>>Display last 5 rows</option>
+                <option value="10" <?php if ($rows == "10"): echo "selected='selected'";
+                        endif;
+    ?>>Display last 10 rows</option>
+                <option value="20" <?php if ($rows == "20"): echo "selected='selected'";
+                        endif;
+    ?>>Display last 20 rows</option>
+            </select>
+        </form>
+    </div>
+    <br>
+    <?php
     $comm = "sudo cat /var/log/samba-audit.log";
     $status = exec($comm, $pout);
 
     echo "comm = " . $comm . '<br>';
 
-    foreach ($pout as $l) {
-        echo $l . '<br />';
+    $pout = array_reverse($pout);
+    if ($rows == "all")
+        $rows = count($pout);
+    $limit = 0;
+    if (count($pout) < $rows)
+        $limit = count($pout);
+    else
+        $limit = $rows;
+    for ($index = 0; $index < $limit; $index++) {
+        echo $pout[$index] . '<br />';
     }
-    ?>    
+    ?>
 
 
 </div>
