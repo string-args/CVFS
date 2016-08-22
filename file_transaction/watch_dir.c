@@ -101,7 +101,7 @@ void *watch_temp()
        perror( "Couldn't initialize inotify" );
     }
     /*add watch to directory*/
-    wd = inotify_add_watch(fd, TEMP_LOC, IN_ALL_EVENTS);
+    wd = inotify_add_watch(fd, TEMP_LOC, IN_CLOSE | IN_CREATE);
     wds[counter-1] = wd;
     strcpy(dirs[counter-1], TEMP_LOC);
 
@@ -114,8 +114,7 @@ void *watch_temp()
 
     /*do it forever*/
     while(1){
-	//select(fd+1, &descriptors, NULL, NULL, &time_to_wait);
-       //create_link();
+
        i = 0;
        length = read(fd, buffer, BUF_LEN);
 
@@ -123,133 +122,113 @@ void *watch_temp()
           perror("read");
        }
        while(i < length){
-           struct inotify_event *event = (struct inotify_event *) &buffer[i];
+          struct inotify_event *event = (struct inotify_event *) &buffer[i];
 
-           if (event->len){
+          if (event->len){
 
 	      if (event->mask & IN_CREATE){
-		if (event->mask & IN_ISDIR){
-		     //printf("%s is created.\n", event->name);
+		  if (event->mask & IN_ISDIR){
+		     
 		     String dir_to_watch = "";
 		     String root = "";
 		     String arr[MAXDEPTH];
 		     int d;
 		    //Initialize array....
 		     for (d = 0; d < 30; d++){
-			strcpy(arr[d], "");
+			     strcpy(arr[d], "");
 		     }
 
 		     get_root(wds,trigger, dirs, counter,event->wd,arr);
 
 		     for (d = 1; d < counter; d++){
-			if(strcmp(arr[d], "") != 0) {
-			    strcat(root, arr[d]);
-			    strcat(root, "/");
-			}
+			     if(strcmp(arr[d], "") != 0) {
+			                       strcat(root, arr[d]);
+			                       strcat(root, "/");
+		         }
 		     }
 
 		     String x;
 		     sprintf(x, "%s%s", root, event->name);
 
-                     sprintf(dir_to_watch,"%s/%s%s/", TEMP_LOC, root, event->name);
+             sprintf(dir_to_watch,"%s/%s%s/", TEMP_LOC, root, event->name);
 		     wd = inotify_add_watch(fd, dir_to_watch, IN_ALL_EVENTS);
 
-		     printf("Write: wd = %d | subdir: %s | counter: %d\n", wd, dir_to_watch, counter);
-
-                     if (wd == -1){
+             if (wd == -1){
 
 		     } else {
-			syslog(LOG_INFO, "FileTransaction: WRITE := Watching := %s\n", dir_to_watch);
+			        syslog(LOG_INFO, "FileTransaction: WRITE := Watching := %s\n", dir_to_watch);
 		     }
-		     //printf("DIR_TO_WATCH := %s\n", dir_to_watch);
 
 		     wds[counter] = wd;
 		     trigger[counter] = event->wd;
-                     strcpy(dirs[counter], event->name);
-
-
-
+             strcpy(dirs[counter], event->name);
 		/***************CREATES in /mnt/CVFSFSTorage AND LINK DIRECTORY to SHare *********/
 		     String dir = "", chmod = "",  sors = "", dest = "";
 		     sprintf(dir, "mkdir '%s/%s'", SHIT_STORAGE, event->name);
 		     system(dir);
 
-                     sprintf(chmod, "chmod 777 -R '%s/%s'", SHIT_STORAGE, event->name);
+             sprintf(chmod, "chmod 777 -R '%s/%s'", SHIT_STORAGE, event->name);
 		     system(chmod);
 
 		     sprintf(sors, "%s/%s", SHIT_STORAGE, event->name);
 		     sprintf(dest, "%s/%s", SHARE_LOC, x);
 
 		     if (symlink(sors,dest) == 0){
-			  printf("[+] %s: %s\n", SHARE_LOC, x);
+			      printf("[+] %s: %s\n", SHARE_LOC, x);
 		     }else {
-
 		     }
 	         /******************************************************************************/
 		     make_folder(x);
 		     counter++;
-		}
-              }
+		   }
+        }
 
-              if (event->mask & IN_CLOSE){
+        if (event->mask & IN_CLOSE){
 		if (event->mask & IN_ISDIR){
 		} else {
-		     String root = "";
-		     String arr[MAXDEPTH];
-		     int n = sizeof(wds) / sizeof(wds[0]);
-		     int d, i, rooti;
+		      String root = "";
+		      String arr[MAXDEPTH];
+		      int n = sizeof(wds) / sizeof(wds[0]);
+              int d, i, rooti;
 		      //initialize the array...
 		      for (d = 0; d < MAXDEPTH; d++){
-			strcpy(arr[d], "");
+			      strcpy(arr[d], "");
 		      }
-
 
 		      get_root(wds, trigger, dirs, counter, event->wd, arr);
 		      for (d = 1; d < counter; d++){
-			if(strcmp(arr[d], "") != 0) {
-			    strcat(root, arr[d]);
-			    strcat(root, "/");
-			}
+			      if(strcmp(arr[d], "") != 0) {
+			                        strcat(root, arr[d]);
+			                        strcat(root, "/");
+                  }
 		      }
 
-                      String filepath = "";
+              String filepath = "";
 		      String filename = "";
 		      sprintf(filename, "%s%s", root, event->name);
-                      FILE *fp;
-                      sprintf(filepath, "%s/%s%s", TEMP_LOC, root, event->name);
-                      fp = fopen(filepath, "rb");
-                      if (fp != NULL){
-                         fseek(fp, 0L, SEEK_END);
-                         long sz = ftell(fp);
-                         rewind(fp);
+                      
+              FILE *fp;
+              sprintf(filepath, "%s/%s%s", TEMP_LOC, root, event->name);
+              fp = fopen(filepath, "rb");
+              if (fp != NULL){
+                 fseek(fp, 0L, SEEK_END);
+                 long sz = ftell(fp);
+                 rewind(fp);
                          //check if stripe file
-                        if (sz > STRIPE_SIZE){
-			   //file_map_cache(filename, event->name);
-                           update_cache_list(event->name, root);
-                           
-			   //if (getCacheCount() < MAX_CACHE_SIZE){
-			   	file_map_cache(filename, event->name);
-			   //}
-			   stripe(root, filepath, filename);
-			   //update_cache_list(event->name, root);
-                        } else {
-			   syslog(LOG_INFO, "FileTransaction: Transferring %s to targets...\n", filename);
-                           file_map(filepath, filename, sz);
-                        }
-		    }
-                  }
-              }
+                 if (sz > STRIPE_SIZE){
+                    update_cache_list(event->name, root);
+			   	    file_map_cache(filename, event->name);
+			        stripe(root, filepath, filename);
+                 } else {
+			        syslog(LOG_INFO, "FileTransaction: Transferring %s to targets...\n", filename);
+                    file_map(filepath, filename, sz);
+                 }
+		      }
+        }
+        }
 
-              if (event->mask & IN_MOVED_TO){
-                 if (event->mask & IN_ISDIR){}
-                      //printf("The directory %s is transferring.\n", event->name);
-                  else{}
-                      //printf("The file %s is transferring.\n", event->name);
-
-              }
-
-              i += EVENT_SIZE + event->len;
-           }
+        i += EVENT_SIZE + event->len;
+        }
        }
     }
     /* Clean up */

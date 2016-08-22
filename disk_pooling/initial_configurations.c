@@ -42,7 +42,6 @@ double toBytes(String sUnit) {
     } else if (strcmp(ptr, TBSTR) == 0) {
         val *= 1000000000000;
     }
-    // syslog(LOG_INFO, "DiskPooling: val = %f\n", val);
     return val;
 }
 
@@ -78,7 +77,7 @@ void initialize() {
 
 
     // do nmap for active hosts with port 3260 open
-    // syslog(LOG_INFO, "DiskPooling: Scanning network...\n");
+   
     sprintf(command, "nmap -v -n %s%s%s -p 3260 | grep open | awk '/Discovered/ {print $NF}'", ip, "/", netmask);
     runCommand(command, alltargetsStr);
 
@@ -93,12 +92,10 @@ void initialize() {
         printf("%s\n", iqn);
         String login = "";
         sprintf(login, "iscsiadm -m node -l -T %s -p %s:3260", iqn, ptr);
-	printf("Login = %s\n", login);
+	
         system(login);        
         sleep(3);
         sprintf(sql,"insert into Target(tid, ipadd,iqn) values (%d, '%s','%s');",counter, ptr,iqn);
-
-        printf("** initconf, sql = %s\n", sql);
 
         rc = sqlite3_exec(db,sql,0,0,0);
         if (rc != SQLITE_OK){
@@ -111,16 +108,13 @@ void initialize() {
         ptr = strtok(NULL, "\n");
         counter++;
     }
-    //sleep(5);
-    //printf("\n\nLogging in to targets...");
-    //system("iscsiadm -m node --login");
     printf("\n\nAvailable partitions written to file \"%s\"\n", AV_DISKS);
     sleep(5);
     sprintf(command, "cat /proc/partitions > '%s'", AV_DISKS);
     system(command);
     system("cat /proc/partitions");
 
-    makeVolume(0);
+    makeVolume();
 
     system("cat '../file_transaction/AvailableDisks.txt' | grep sd[b-z] | awk '{print $4}' > SDNAME.txt");
 
@@ -133,21 +127,8 @@ void initialize() {
         exit(1);
     }
 
-    //while(fscanf(fp, "%s", l) != EOF) {
-     //   printf("read: %s\n", l);
-    //}
-
-    // syslog(LOG_INFO, "DiskPooling: DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-
-    // syslog(LOG_INFO, "DiskPooling: Disklist before: %s\n\n", disklist);
-    //strcat(disklist, "\n");
-    // syslog(LOG_INFO, "DiskPooling: PTR Before: %s\n\n", ptr1);
-    // syslog(LOG_INFO, "DiskPooling: DIskList after: %s\n\n", disklist);
     counter = 1;
     while(fscanf(fp, "%s", l) != EOF) {
-    //    syslog(LOG_INFO, "DiskPooling: PTR: %s\n\n", ptr1);
-    //    syslog(LOG_INFO, "DiskPooling: INSIDE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-        printf("this line is read: %s\n", l);
        strcat(assocvol,"/dev/vg");
        strcat(assocvol,l);
        strcat(assocvol,"/lv");
@@ -161,12 +142,9 @@ void initialize() {
 
        runCommand(command1,avspace);
 
-       // edit here not sure if working (assume: avspace = "12.3 GiB")
        double space_bytes = toBytes(avspace);
 
        sprintf(sql1,"update Target set assocvol = '%s', mountpt = '%s', avspace = %lf where tid = %d", assocvol, mountpt, space_bytes, counter);
-       printf("just checking sql1 = %s\n", sql1);
-    //    syslog(LOG_INFO, "DiskPooling: SQL1 = %s\n", sql1);
        rc = sqlite3_exec(db,sql1,0,0,0);
 
        if (rc != SQLITE_OK){
@@ -178,11 +156,7 @@ void initialize() {
        strcpy(mountpt,"");
        strcpy(avspace,"");
        counter++;
-    //    pp = strtok(NULL,"\n");
-    //    printf("***************\n\n\n%s\n\n\n", ptr1);
     }
-
-    printf("closign file\n");
     fclose(fp);
 
     printf("\n\nInitialization finished\n");

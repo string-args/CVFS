@@ -1,2 +1,2 @@
-void makeVolume(int update);
+void makeVolume();
 void makeVolumeAdd(String ipadd);

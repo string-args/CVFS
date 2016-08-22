@@ -151,7 +151,7 @@ printf("mewdisk = %s\n", newdisk);
     sqlite3_close(db);
 }
 
-void makeVolume(int update) {
+void makeVolume() {
     char buff[512];
     FILE *partitions = popen("cat /proc/partitions | awk '{print $4}' | grep 'sd[b-z]'", "r");
 

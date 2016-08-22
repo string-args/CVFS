@@ -13,7 +13,7 @@
 static int callback(void *NotUsed, int argc, char **argv, char **azColName){
 	int i;
 	for (i = 0; i < argc; i++){
-		printf("%s = %s\n", azColName[i], argv[i]?argv[i]:"NULL");
+		//printf("%s = %s\n", azColName[i], argv[i]?argv[i]:"NULL");
 	}
 	printf("\n");
 	return 0;
@@ -167,9 +167,9 @@ void file_map(String fullpath, String filename, long sz){
        // delete file in TEMP_LOC
        String rm = "";
        sprintf(rm, "rm '%s'", fullpath);
-       printf("file_map: rm = %s\n", rm);
+       //printf("file_map: rm = %s\n", rm);
        system(rm);
-       printf("Nilinis ko na yung kinalat mong file.");
+       //printf("Nilinis ko na yung kinalat mong file.");
        //exit(1);
    }
 
@@ -227,7 +227,7 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
 
 
     sprintf(sql, "SELECT avspace, mountpt FROM Target WHERE avspace >= %ld ORDER BY avspace DESC;", STRIPE_SIZE);
-    printf("sql = %s!\n", sql);
+    //printf("sql = %s!\n", sql);
     //printf("IN FILE_MAP_STRIPE FUNCTION!\n");
     good = 0;
      while(!good) {
@@ -251,7 +251,7 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
 	   num_targs++;
     }
     sqlite3_finalize(res);
-    printf("num targets = %d\n", num_targs);
+    //printf("num targets = %d\n", num_targs);
     //printf("Num targs: %d\n", num_targs);
     //for checking
     //int pi = 0;
@@ -265,7 +265,7 @@ void file_map_stripe(String *fullpaths, String *filenames, int parts) {
     for (zi = 0; zi < parts; zi++) {
         act_cnt = act_cnt + 1;
         if (num_targs == 0) {   // wala nang target pero meron pang part = HINDI NA KASYA :(
-            printf("stripe function cannot do this\n");
+            //printf("stripe function cannot do this\n");
 	    printf("Targets FULL. Cannot do this.\n");
             exit(1);
         }
@@ -323,40 +323,13 @@ void file_map_cache(String filename, String event_name){
 
 
     int flag = 1;
-    FILE *fp = fopen ("../file_transaction/random.txt", "wb");
+    FILE *fp = fopen ("../file_transaction/is_striping.txt", "wb");
     fprintf(fp, "%d", flag);
     fclose(fp); //not yet done striping;
-
-    //printf("\n\nFLAG == ");
-    //system("cat ../file_transaction/random.txt");
-    //printf("\n\n");
-
-    //update_cache_list(filename);
     syslog(LOG_INFO, "VolumeManagement: Copying file to cache...\n");
     sprintf(cp, "cp '%s/%s' '%s/part1.%s'", TEMP_LOC, filename, CACHE_LOC, event_name);
-    //printf("in filemapcache: cp: %s\n", cp);
     system(cp); //copy file to cache
 
     printf("[+] Cache: part1.%s\n", event_name);
-    //create_link();
-    //String file = "";
-    //sprintf(file, "%s/part1.%s", CACHE_LOC, event_name);
-    //FILE *fp = fopen(file, "rb");
-    //if (fp != NULL){
-    //	printf("File already in Cache!\n");
-    //} else {
-   //	printf("File not in cache!\n");
-    //}
-    //fclose(fp);
-
-    //create_link();
-    //sprintf(source, "%s/%s", TEMP_LOC, filename);
-//    sprintf(source, "%s/part1.%s", CACHE_LOC, event_name);
-//    sprintf(dest, "%s/%s", SHARE_LOC, filename);
-//    if (symlink(source, dest) == 0){
-//   	syslog(LOG_INFO, "File Presentation: Created Link %s\n", dest);
-//    }
-
-    //sprintf(rm, "rm '/mnt/CVFSTemp/%s'", filename);
-    //system(rm);
+  
 }

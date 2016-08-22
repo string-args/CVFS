@@ -30,10 +30,10 @@ void show_help() {
 
 void configure() {
     int flag = 0; //initial value of flag
-    FILE *fp = fopen("random.txt", "w");
+    FILE *fp = fopen("is_striping.txt", "w");
     fprintf(fp, "%d", flag);
     fclose(fp);
-    fp = fopen("is_assembling.txt", "w");
+    fp = fopen("cache_assembling.txt", "w");
     fprintf(fp, "%d", flag);
     fclose(fp);
     // read configuration files of cache size and stripe size
@@ -51,9 +51,6 @@ void configure() {
     }
     fscanf(fp, "%ld", &STRIPE_SIZE);
     fclose(fp);
-    //strcpy(DBNAME, "../Database/cvfs_db");
-    //sprintf(DBNAME, "%s", "../Database/cvfs_db"); 
-    
 }
 
 int main(int argc, char *argv[]) {
@@ -80,18 +77,9 @@ int main(int argc, char *argv[]) {
     configure();
 
     while(1) {
-        //pthread_create(&t[0], NULL, create_link, NULL);
         pthread_create(&t[0], NULL, watch_temp, NULL);
         pthread_create(&t[1], NULL, watch_share, NULL);
-        
-//	FILE *fp = fopen("deleting.txt", "r");
-//	int flag;
-//	fscanf(fp, "%d", &flag);
-//	if (flag == 0){
-        	pthread_create(&t[2], NULL, create_link, NULL);
-//	}
-	//pthread_create(&t[3], NULL, refreshCache, NULL);
-
+       	pthread_create(&t[2], NULL, create_link, NULL);
         for (i = 0; i < THREADCNT; i++) {
             pthread_join(t[i], NULL);
         }

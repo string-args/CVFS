@@ -47,12 +47,6 @@ void assemble_cache_file(String filename, String root){
    strcpy(files, "");
    strcpy(assfile, "");
    while (sqlite3_step(res) == SQLITE_ROW){
-
-       //if (strstr(sqlite3_column_text(res,0), "part1.") != NULL){
-          //if file contains part1
-       //   strcpy(assfile, sqlite3_column_text(res,0)); //will be the filename
-       //}
-
        String name;
        sprintf(name, "\"%s/%s\"", sqlite3_column_text(res,1), sqlite3_column_text(res,0));
        strcat(files, name);
@@ -60,29 +54,15 @@ void assemble_cache_file(String filename, String root){
    }
    sqlite3_finalize(res);
    sqlite3_close(db);
-   //printf("RANDOM!\n");
    sprintf(comm, "cat %s > '%s/part1.%s'", files, ASSEMBLY_LOC, filename);
-   printf("cat := %s\n", comm);
-   //syslog(LOG_INFO, "VolumeManagement: comm = %s\n", comm);
-
-  //syslog(LOG_INFO, "VolumeManagement: PART1 OF THE FILE: %s/%s", ftemploc,ftemp);
    system(comm);
-
-   printf("ASSEMBLY FINISHED!\n");
 
    syslog(LOG_INFO, "VolumeManagement: Assembled File: %s/%s\n", ASSEMBLY_LOC, assfile);
 
    String put_cache = "";
    sprintf(put_cache, "mv '%s/part1.%s' '%s/part1.%s'", ASSEMBLY_LOC, filename, CACHE_LOC, filename);
-   //syslog(LOG_INFO, "VolumeManagement: MV = %s\n", put_cache);
-   printf("PUT CACHE := %s\n", put_cache);
-
    system(put_cache);
    printf("[+] Cache: part1.%s\n", filename);
-   //String remove = "";
-   //sprintf(remove, "rm '%s/part1.%s'", ASSEMBLY_LOC, filename);
-   //system(remove);
-
    syslog(LOG_INFO, "VolumeManagement: part1.%s was put in cache.\n", filename);
 }
 
@@ -140,16 +120,13 @@ void assemble(String filename){
     }
     sqlite3_finalize(res);
 
-	//printf("ROOT := %s\n", root);
-
     if (strstr(filename, "part1.") != NULL){
 	memmove(filename, filename+strlen("part1."), 1+strlen(filename+strlen("part1.")));
     }
 
    /*Look for all the fileparts in the database. part<number>.<filename>*/
    sprintf(query, "SELECT filename, fileloc FROM VolContent WHERE filename LIKE '%spart%c.%s'", root, percent, filename);
-   //printf("\n\n\nfile assembly::: finding parts query: %s\n\n\n\n", query);
-
+ 
    rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
    good = 0;
    while (!good) {
@@ -177,69 +154,22 @@ void assemble(String filename){
     sqlite3_finalize(res);
 
    sprintf(comm, "cat %s > '%s/part1.%s'", files, ASSEMBLY_LOC, filename);
-   //printf("COMM := %s\n", comm);
-
-	// syslog(LOG_INFO, "VolumeManagement: comm = %s\n", comm);
-
-  //syslog(LOG_INFO, "VolumeManagement: PART1 OF THE FILE: %s/%s", ftemploc,ftemp);
    system(comm);
    syslog(LOG_INFO, "VolumeManagement: Assembled File: %s/%s\n", ASSEMBLY_LOC, assfile);
-
-   //file is already assembled
-   //move original part1 of the file to CVFStore folder
-   // String sql;
-   // sprintf(sql, "SELECT fileloc FROM VolContent WHERE filename = '%s'", tempname);
-   // syslog(LOG_INFO, "VolumeManagement: SQL = %s", sql);
-
-   // rc = sqlite3_prepare_v2(db, sql, 1000, &res, &tail);
-   // if (rc != SQLITE_OK){
-   //   fprintf(stderr, "Didn't get any data!\n");
-   //   exit(1);
-   // }
-
    // put orig file in store
    String mv = "", cp = "";
    //copy original part1 of file to CVFStore folder
    sprintf(cp, "cp '%s' '%s/%s'", volname, STORAGE_LOC, tempname);
    //move assembled file from assembly to volume with part1
    sprintf(mv, "mv '%s/part1.%s' '%s'", ASSEMBLY_LOC, filename, volname);
-   printf("\nfile assembly CP = %s\n", cp);
-   printf("\nfile assembly MV = %s\n", mv);
    system(cp);
    system(mv);
 
    printf("[+] %s: %s\n", STORAGE_LOC, tempname);
 
-   //String remove = "";
-   //sprintf(remove, "rm %s/%s", ASSEMBLY_LOC, assfile);
-   //system(remove);
-
    FILE *fp1 = fopen("../file_transaction/assembled.txt", "a");
    fprintf(fp1, "%s\n", tempname);
    fclose(fp1);
-
-   // if (sqlite3_step(res) == SQLITE_ROW){
-   //    String mv = "", cp = "";
-   //    //copy original part1 of file to CVFStore folder
-   //    sprintf(cp, "cp '%s/%s' '%s/%s'", sqlite3_column_text(res,0), tempname, STORAGE_LOC, tempname);
-   //    //move assembled file
-   //    sprintf(mv, "mv '%s/%s' '%s/%s'", ASSEMBLY_LOC, tempname, sqlite3_column_text(res,0), tempname);
-   //  //   printf("\nCP = %s\n", cp);
-   //  //   printf("\nMV = %s\n", mv);
-   //    system(cp);
-   //    system(mv);
-   //
-   //
-   //   printf("Assembly cp := %s\n", cp);
-   //   printf("Assembly mv := %s\n", mv);
-   // }
-   // sqlite3_finalize(res);
-  //String comm1 = "";
-  //sprintf(comm1, "ln -snf '%s%s' '%s/%s'", ASSEMBLY_LOC, filename, SHARE_LOC, ftemp);
-  //syslog(LOG_INFO, "VolumeManagement: comm1 = %s\n", comm1);
-
-  // system(comm1);
-
    sqlite3_close(db);
 }
 
@@ -258,7 +188,6 @@ void disassemble(String filename){
 		exit(1);
 	}
 
-
 	String query = "", root = "";
 	sprintf(query, "Select mountpt from CacheContent where filename = '%s';", filename);
 	int good = 0;
@@ -276,23 +205,21 @@ void disassemble(String filename){
 	String volume = "";
 	sprintf(query, "Select fileloc from VolContent where filename = '%s%s'", root, filename);
 	good = 0;
-        //printf("Root := %s\n", root);
+  
 	while (!good){
 		rc = sqlite3_prepare_v2(db, query, 1000, &res, &tail);
 		if (rc != SQLITE_OK){
-			printf("Disassemble: SQL Error: %s\n", sqlite3_errmsg(db));
+			
 		} else {good = 1;}
 	}
 	if (sqlite3_step(res) == SQLITE_ROW){
 		strcpy(volume, sqlite3_column_text(res,0));
 	}
-        //printf("VOLUME := %s\n", volume);
+        
 	sqlite3_finalize(res);
-	//sqlite3_close(db);
 
 	String mv = "";
 	sprintf(mv, "mv '%s/%s' '%s/%s%s'", STORAGE_LOC, filename, volume, root, filename);
-	//printf("Disassemble MV := %s\n", mv);
 	system(mv);
 	sqlite3_close(db);
 
@@ -312,5 +239,4 @@ void disassemble(String filename){
 	fclose(fp1);
 	fclose(fp2);
 	system("mv '../file_transaction/disassembled.txt' '../file_transaction/assembled.txt'");
-	//printf("Disassembly done!\n");
 }
